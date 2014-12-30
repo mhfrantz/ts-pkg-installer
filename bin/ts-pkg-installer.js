@@ -1,15 +1,15 @@
 // ts-pkg-installer.ts
 ///<reference path="../typings/commander/commander.d.ts"/>
+///<reference path="../typings/bluebird/bluebird.d.ts"/>
 ///<reference path="../typings/debug/debug.d.ts"/>
 ///<reference path="../typings/glob/glob.d.ts"/>
 ///<reference path="../typings/node/node.d.ts"/>
-///<reference path="../typings/q/Q.d.ts"/>
 'use strict';
 var assert = require('assert');
+var BluePromise = require('bluebird');
 var commander = require('commander');
 var debug = require('debug');
 var path = require('path');
-var Q = require('q');
 // Command-line options, describing the structure of options in commander.
 var Options = (function () {
     function Options(options) {
@@ -76,31 +76,31 @@ var TypeScriptPackageInstaller = (function () {
         var configFile = this.options.configFile;
         // TODO
         this.config = {};
-        return Q(null);
+        return BluePromise.resolve();
     };
     // Read the package configuration.
     TypeScriptPackageInstaller.prototype.readPackageConfigFile = function () {
         // TODO
         this.packageConfig = {};
-        return Q(null);
+        return BluePromise.resolve();
     };
     // Wrap the exported declaration file based on the "main" file from package.json.
     TypeScriptPackageInstaller.prototype.wrapDeclaration = function () {
         assert(this.config);
         // TODO
-        return Q(null);
+        return BluePromise.resolve();
     };
     // Copy exported modules into typings
     TypeScriptPackageInstaller.prototype.copyExportedModules = function () {
         assert(this.config);
         // TODO
-        return Q(null);
+        return BluePromise.resolve();
     };
     // Incorporate typings from our own dependencies.
     TypeScriptPackageInstaller.prototype.haulTypings = function () {
         assert(this.config);
         // TODO
-        return Q(null);
+        return BluePromise.resolve();
     };
     return TypeScriptPackageInstaller;
 })();

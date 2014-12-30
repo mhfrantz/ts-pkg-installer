@@ -1,18 +1,18 @@
 // ts-pkg-installer.ts
 ///<reference path="../typings/commander/commander.d.ts"/>
+///<reference path="../typings/bluebird/bluebird.d.ts"/>
 ///<reference path="../typings/debug/debug.d.ts"/>
 ///<reference path="../typings/glob/glob.d.ts"/>
 ///<reference path="../typings/node/node.d.ts"/>
-///<reference path="../typings/q/Q.d.ts"/>
 
 'use strict';
 
 import assert = require('assert');
+import BluePromise = require('bluebird');
 import commander = require('commander');
 import debug = require('debug');
 import glob = require('glob');
 import path = require('path');
-import Q = require('q');
 
 // Command-line options, describing the structure of options in commander.
 class Options {
@@ -71,7 +71,7 @@ class TypeScriptPackageInstaller {
   }
 
   // Main entry point to install a TypeScript package as an NPM postinstall script.
-  main(): Q.Promise<void> {
+  main(): BluePromise<void> {
     dlog('main');
 
     return this.readConfigFile()
@@ -100,39 +100,39 @@ class TypeScriptPackageInstaller {
   }
 
   // Read the configuration file for this utility.
-  private readConfigFile(): Q.Promise<void> {
+  private readConfigFile(): BluePromise<void> {
     var configFile = this.options.configFile;
     // TODO
     this.config = {};
-    return Q(<void>null);
+    return BluePromise.resolve();
   }
 
   // Read the package configuration.
-  private readPackageConfigFile(): Q.Promise<void> {
+  private readPackageConfigFile(): BluePromise<void> {
     // TODO
     this.packageConfig = {};
-    return Q(<void>null);
+    return BluePromise.resolve();
   }
 
   // Wrap the exported declaration file based on the "main" file from package.json.
-  private wrapDeclaration(): Q.Promise<void> {
+  private wrapDeclaration(): BluePromise<void> {
     assert(this.config);
     // TODO
-    return Q(<void>null);
+    return BluePromise.resolve();
   }
 
   // Copy exported modules into typings
-  private copyExportedModules(): Q.Promise<void> {
+  private copyExportedModules(): BluePromise<void> {
     assert(this.config);
     // TODO
-    return Q(<void>null);
+    return BluePromise.resolve();
   }
 
   // Incorporate typings from our own dependencies.
-  private haulTypings(): Q.Promise<void> {
+  private haulTypings(): BluePromise<void> {
     assert(this.config);
     // TODO
-    return Q(<void>null);
+    return BluePromise.resolve();
   }
 }
 
