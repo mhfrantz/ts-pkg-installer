@@ -13,6 +13,12 @@
     },
     "debug/debug.d.ts": {
       "commit": "ca32947b75a2b1203779dac7154ffbc232746e4d"
+    },
+    "mocha/mocha.d.ts": {
+      "commit": "ca32947b75a2b1203779dac7154ffbc232746e4d"
+    },
+    "chai/chai.d.ts": {
+      "commit": "ca32947b75a2b1203779dac7154ffbc232746e4d"
     }
   }
 }

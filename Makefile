@@ -34,8 +34,8 @@ documentation :
 
 test: unittest cucumber
 
-unittest:
-	echo "No cucumber tests defined for this module."
+unittest: lint compile
+	node_modules/.bin/mocha --timeout 5s --reporter=spec --ui tdd
 
 cucumber: lint compile
 	node_modules/.bin/cucumber-js --tags '~@todo'
