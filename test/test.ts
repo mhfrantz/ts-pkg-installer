@@ -1,13 +1,16 @@
 // test.ts
 /// <reference path="../typings/chai/chai.d.ts"/>
+/// <reference path="../typings/debug/debug.d.ts"/>
 /// <reference path="../typings/mocha/mocha.d.ts"/>
 /// <reference path="../typings/node/node.d.ts"/>
 
 import chai = require('chai');
 import childProcess = require('child_process');
+import debug = require('debug');
 import path = require('path');
 
 describe('ts-pkg-installer', () => {
+  var dlog = debug('ts-pkg-installer:test');
   var expect = chai.expect;
   var script = path.join('bin', 'ts-pkg-installer.sh');
 
@@ -16,6 +19,11 @@ describe('ts-pkg-installer', () => {
 
     // Convert stdout and stderr to strings.
     function wrappedCallback(error: Error, stdout: Buffer, stderr: Buffer): void {
+      if (error) {
+        dlog('error: ' + error.toString());
+      }
+      dlog('stdout:\n' + stdout.toString());
+      dlog('stderr:\n' + stderr.toString());
       callback(error, stdout.toString(), stderr.toString());
     };
 
@@ -47,6 +55,42 @@ describe('ts-pkg-installer', () => {
       expect(error).to.equal(null);
       expect(stderr).to.equal('');
       expect(stdout).to.contain('Usage: ts-pkg-installer');
+      done();
+    });
+  });
+
+  it('supports verbose mode (-v)', (done: MochaDone) => {
+    run(['-v'], function (error: Error, stdout: string, stderr: string): void {
+      expect(error).to.equal(null);
+      expect(stderr).to.contain('ts-pkg-installer Verbose output');
+      expect(stdout).to.equal('');
+      done();
+    });
+  });
+
+  it('supports verbose mode (--verbose)', (done: MochaDone) => {
+    run(['--verbose'], function (error: Error, stdout: string, stderr: string): void {
+      expect(error).to.equal(null);
+      expect(stderr).to.contain('ts-pkg-installer Verbose output');
+      expect(stdout).to.equal('');
+      done();
+    });
+  });
+
+  it('supports dry run mode (-n)', (done: MochaDone) => {
+    run(['-v', '-n'], function (error: Error, stdout: string, stderr: string): void {
+      expect(error).to.equal(null);
+      expect(stderr).to.contain('ts-pkg-installer Dry run');
+      expect(stdout).to.equal('');
+      done();
+    });
+  });
+
+  it('supports dry run mode (--dry-run)', (done: MochaDone) => {
+    run(['-v', '--dry-run'], function (error: Error, stdout: string, stderr: string): void {
+      expect(error).to.equal(null);
+      expect(stderr).to.contain('ts-pkg-installer Dry run');
+      expect(stdout).to.equal('');
       done();
     });
   });
