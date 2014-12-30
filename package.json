@@ -15,10 +15,18 @@
   ],
   "author": "Matt Frantz <mfrantz@redsealnetworks.com>",
   "license": "ISC",
+  "bin": {
+    "ts-pkg-installer": "bin/ts-pkg-installer.sh",
+    "ts-pkg-installer.js": "bin/ts-pkg-installer.js"
+  },
   "devDependencies": {
     "cucumber": "^0.4.7",
     "tsd": "^0.6.0-beta.5",
     "tslint": "^1.0.1",
     "typescript": "^1.3.0"
+  },
+  "dependencies": {
+    "commander": "^2.6.0",
+    "debug": "^2.1.1"
   }
 }
