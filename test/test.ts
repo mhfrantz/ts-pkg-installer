@@ -22,6 +22,17 @@ describe('ts-pkg-installer', () => {
     childProcess.execFile(script, args, wrappedCallback);
   }
 
+  // Preserve the current working directory in case a test changes it.
+  var cwdSave: string;
+
+  beforeEach(() => {
+    cwdSave = process.cwd();
+  });
+
+  afterEach(() => {
+    process.chdir(cwdSave);
+  });
+
   it('displays usage statement when --help is specified', (done: MochaDone) => {
     run(['--help'], function (error: Error, stdout: string, stderr: string): void {
       expect(error).to.equal(null);
