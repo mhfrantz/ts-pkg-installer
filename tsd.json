@@ -14,6 +14,15 @@
     "debug/debug.d.ts": {
       "commit": "ca32947b75a2b1203779dac7154ffbc232746e4d"
     },
+    "glob/glob.d.ts": {
+      "commit": "ca32947b75a2b1203779dac7154ffbc232746e4d"
+    },
+    "q/Q.d.ts": {
+      "commit": "ca32947b75a2b1203779dac7154ffbc232746e4d"
+    },
+    "minimatch/minimatch.d.ts": {
+      "commit": "ca32947b75a2b1203779dac7154ffbc232746e4d"
+    },
     "mocha/mocha.d.ts": {
       "commit": "ca32947b75a2b1203779dac7154ffbc232746e4d"
     },
