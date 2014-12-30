@@ -1,0 +1,24 @@
+{
+  "name": "ts-pkg-installer",
+  "version": "1.0.0",
+  "description": "TypeScript package installer",
+  "main": "bin/ts-pkg-installer.js",
+  "scripts": {
+    "test": "make"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.lab.redseal.net:mfrantz/ts-pkg-installer.git"
+  },
+  "keywords": [
+    "typescript"
+  ],
+  "author": "Matt Frantz <mfrantz@redsealnetworks.com>",
+  "license": "ISC",
+  "devDependencies": {
+    "cucumber": "^0.4.7",
+    "tsd": "^0.6.0-beta.5",
+    "tslint": "^1.0.1",
+    "typescript": "^1.3.0"
+  }
+}
