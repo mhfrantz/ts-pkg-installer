@@ -205,4 +205,54 @@ describe('ts-pkg-installer', () => {
       done();
     });
   });
+
+  it('wraps a nominal main declaration', (done: MochaDone) => {
+    run(nominalTestData, ['-v', '-n'], function (error: Error, stdout: string, stderr: string): void {
+      expect(error).to.equal(null);
+      expect(stderr).to.contain('ts-pkg-installer Wrapped main declaration file:\n' +
+                                '/// <reference path="../../../typings/node/node.d.ts" />\n' +
+                                'declare module \'nominal\' {\n' +
+                                'export declare function nominal(): void;\n' +
+                                '}\n\n');
+      expect(stdout).to.equal('');
+      done();
+    });
+  });
+
+  it('wraps a minimal main declaration', (done: MochaDone) => {
+    var testData: string = path.join(testDataRoot, 'none');
+    run(testData, ['-v', '-n'], function (error: Error, stdout: string, stderr: string): void {
+      expect(error).to.equal(null);
+      expect(stderr).to.contain('ts-pkg-installer Wrapped main declaration file:\n' +
+                                'declare module \'none\' {\n' +
+                                'export declare function index(): void;\n' +
+                                '}\n\n');
+      expect(stdout).to.equal('');
+      done();
+    });
+  });
+
+  it('wraps an empty main declaration', (done: MochaDone) => {
+    var testData: string = path.join(testDataRoot, 'empty-main');
+    run(testData, ['-v', '-n'], function (error: Error, stdout: string, stderr: string): void {
+      expect(error).to.equal(null);
+      expect(stderr).to.contain('ts-pkg-installer Wrapped main declaration file:\n' +
+                                'declare module \'empty-main\' {\n' +
+                                '}\n\n');
+      expect(stdout).to.equal('');
+      done();
+    });
+  });
+
+  it('fails if no main declaration file exists', (done: MochaDone) => {
+    var testData: string = path.join(testDataRoot, 'js-main');
+    run(testData, ['-n'], function (error: Error, stdout: string, stderr: string): void {
+      expect(error).to.not.equal(null);
+      expect(stderr).to.contain('Main declaration file could not be wrapped');
+      expect(stderr).to.contain('OperationalError: ENOENT, open \'index.d.ts\'');
+      expect(stdout).to.equal('');
+      done();
+    });
+  });
+
 });

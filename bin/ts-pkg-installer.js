@@ -62,11 +62,19 @@ function normalizedFsExists(file, callback) {
 }
 var fsExistsAsync = BluePromise.promisify(normalizedFsExists);
 var fsReadFileAsync = BluePromise.promisify(fs.readFile);
+// ### DeclarationFileState
+// Maintain a state machine, separating the file into header and body sections.
+var DeclarationFileState;
+(function (DeclarationFileState) {
+    DeclarationFileState[DeclarationFileState["Header"] = 0] = "Header";
+    DeclarationFileState[DeclarationFileState["Body"] = 1] = "Body";
+})(DeclarationFileState || (DeclarationFileState = {}));
+;
 // ## TypeScriptPackageInstaller
 // Used as the NPM postinstall script, this will do the following:
 // - Read configuration from tspi.json (or options.configFile)
-// - Wrap the exported declaration file(s)
-// - Copy the exported declaration file(s) to the "typings" directory
+// - Wrap the main declaration file
+// - Copy the main declaration file to the "typings" directory
 var TypeScriptPackageInstaller = (function () {
     function TypeScriptPackageInstaller(options) {
         if (options === void 0) { options = defaultOptions; }
@@ -80,7 +88,7 @@ var TypeScriptPackageInstaller = (function () {
         return this.readConfigFile().then(function () {
             return _this.readPackageConfigFile();
         }).then(function () {
-            return _this.wrapDeclaration();
+            return _this.wrapMainDeclaration();
         }).then(function () {
             return _this.copyExportedModules();
         }).then(function () {
@@ -145,11 +153,73 @@ var TypeScriptPackageInstaller = (function () {
             throw new Error('Package config file could not be read: ' + packageConfigFile);
         });
     };
-    // Wrap the exported declaration file based on the "main" file from package.json.
-    TypeScriptPackageInstaller.prototype.wrapDeclaration = function () {
+    // Wrap the main declaration file, by default based on the "main" JS file from package.json.
+    TypeScriptPackageInstaller.prototype.wrapMainDeclaration = function () {
+        var _this = this;
         assert(this.config);
-        // TODO
-        return BluePromise.resolve();
+        // Figure out what the main declaration file is.
+        var mainDeclarationFile = this.determineMainDeclaration();
+        dlog('Reading main declaration file: ' + mainDeclarationFile);
+        return fsReadFileAsync(mainDeclarationFile, 'utf8').then(function (contents) {
+            dlog('Parsing main declaration file: ' + mainDeclarationFile);
+            return _this.wrapMainDeclarationContents(contents);
+        }).then(function (wrapped) {
+            dlog('Wrapped main declaration file:\n' + wrapped);
+            _this.wrappedMainDeclaration = wrapped;
+        }).catch(function (error) {
+            throw new Error('Main declaration file could not be wrapped: ' + error.toString());
+        });
+    };
+    // Determine what the main declaration file for the package is.  If not configured, it is the *.d.ts with the same
+    // basename as the package "main" JS file.
+    TypeScriptPackageInstaller.prototype.determineMainDeclaration = function () {
+        assert(this.config);
+        assert(this.packageConfig);
+        if (this.config.mainDeclaration) {
+            return this.config.mainDeclaration;
+        }
+        else {
+            var mainJS = this.packageConfig.main;
+            var mainDTS = mainJS.replace(/\.js$/, '.d.ts');
+            return mainDTS;
+        }
+    };
+    // Wrap the main declaration file whose contents are provided.
+    TypeScriptPackageInstaller.prototype.wrapMainDeclarationContents = function (contents) {
+        var _this = this;
+        // Process each line in the main declaration file.
+        var lines = contents.split('\n');
+        // Recognize reference path lines that form the header.
+        var referencePathRegex = /^ *\/\/\/ *<reference *path *= *".*" *\/> *$/;
+        // Maintain a state machine, separating the file into header and body sections.
+        var state = 0 /* Header */;
+        var reducer = function (wrapped, line) {
+            // See if we have a reference path.
+            var isReferencePath = line.match(referencePathRegex) && true;
+            if (state === 0 /* Header */) {
+                if (!isReferencePath) {
+                    // Transitioning out of header state, so emit the module declaration.
+                    wrapped.push(_this.moduleDeclaration());
+                    state = 1 /* Body */;
+                }
+            }
+            // Emit the line (but not blank lines).
+            if (line !== '') {
+                wrapped.push(line);
+            }
+            return wrapped;
+        };
+        return BluePromise.reduce(lines, reducer, []).then(function (wrapped) {
+            // End by closing the module declaration
+            wrapped.push('}');
+            wrapped.push('');
+            return wrapped.join('\n');
+        });
+    };
+    // Return the TypeScript module declaration statement for this package.
+    TypeScriptPackageInstaller.prototype.moduleDeclaration = function () {
+        assert(this.packageConfig && this.packageConfig.name);
+        return 'declare module \'' + this.packageConfig.name + '\' {';
     };
     // Copy exported modules into typings
     TypeScriptPackageInstaller.prototype.copyExportedModules = function () {

@@ -1,0 +1,3 @@
+// index.ts
+
+'use strict';
