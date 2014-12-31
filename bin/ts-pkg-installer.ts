@@ -60,12 +60,29 @@ interface IConfig {
 interface IPackageConfig {
 }
 
-// ## IFSAsync
-interface IFSAsync {
-  existsAsync: Function;
-  readFileAsync: Function;
+// ## fsExistsAsync
+// Special handling for fs.exists, which does not conform to Node.js standards for async interfaces.
+
+// We must first normalize the fs.exists API to give it the node-like callback signature.
+function normalizedFsExists(file: string, callback: (error: Error, result: boolean) => void) {
+  fs.exists(file, (exists: boolean): void => {
+    callback(null, exists);
+  });
 }
-var fsAsync = <IFSAsync> BluePromise.promisifyAll(fs);
+
+// Next, we wrap the normalized API with Q to make it return a promise.
+interface IFsExistsAsync {
+  (file: string): BluePromise<boolean>;
+}
+var fsExistsAsync: IFsExistsAsync = <IFsExistsAsync> BluePromise.promisify(normalizedFsExists);
+
+// ## fsReadFileAsync
+// fs.readFile conforms to Node.js standards, so we only need to define the interface to make up for the deficiency in
+// the bluebird TSD.
+interface IFsReadFileAsync {
+  (file: string, encoding: string): BluePromise<string>;
+}
+var fsReadFileAsync: IFsReadFileAsync = <IFsReadFileAsync> BluePromise.promisify(fs.readFile);
 
 // ## TypeScriptPackageInstaller
 // Used as the NPM postinstall script, this will do the following:
@@ -115,18 +132,24 @@ class TypeScriptPackageInstaller {
   // Read the configuration file for this utility.
   private readConfigFile(): BluePromise<void> {
     var configFile = this.options.configFile;
-    return fsAsync.existsAsync(configFile)
+    var readFromFile: boolean;
+    return fsExistsAsync(configFile)
       .then((exists: boolean): BluePromise<string> => {
         if (exists) {
           dlog('Reading config file: ' + configFile);
-          return fsAsync.readFileAsync(configFile, 'utf8');
+          readFromFile = true;
+          return fsReadFileAsync(configFile, 'utf8');
         } else {
           dlog('Config file not found: ' + configFile);
+          readFromFile = false;
           // Parse an empty JSON object to use the defaults.
           return BluePromise.resolve('{}');
         }
       })
       .then((contents: string): void => {
+        if (readFromFile) {
+          dlog('Read config file: ' + configFile);
+        }
         this.config = <IConfig> JSON.parse(contents);
       });
   }

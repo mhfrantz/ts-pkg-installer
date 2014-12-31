@@ -34,7 +34,16 @@ var packageConfigFile = 'package.json';
 var exportDirGlob = path.join('lib', 'export', '*.d.ts');
 // Point to the location where typings will be exported.
 var typingsDir = path.join('..', '..', 'typings');
-var fsAsync = BluePromise.promisifyAll(fs);
+// ## fsExistsAsync
+// Special handling for fs.exists, which does not conform to Node.js standards for async interfaces.
+// We must first normalize the fs.exists API to give it the node-like callback signature.
+function normalizedFsExists(file, callback) {
+    fs.exists(file, function (exists) {
+        callback(null, exists);
+    });
+}
+var fsExistsAsync = BluePromise.promisify(normalizedFsExists);
+var fsReadFileAsync = BluePromise.promisify(fs.readFile);
 // ## TypeScriptPackageInstaller
 // Used as the NPM postinstall script, this will do the following:
 // - Read configuration from tspi.json (or options.configFile)
@@ -79,17 +88,23 @@ var TypeScriptPackageInstaller = (function () {
     TypeScriptPackageInstaller.prototype.readConfigFile = function () {
         var _this = this;
         var configFile = this.options.configFile;
-        return fsAsync.existsAsync(configFile).then(function (exists) {
+        var readFromFile;
+        return fsExistsAsync(configFile).then(function (exists) {
             if (exists) {
                 dlog('Reading config file: ' + configFile);
-                return fsAsync.readFileAsync(configFile, 'utf8');
+                readFromFile = true;
+                return fsReadFileAsync(configFile, 'utf8');
             }
             else {
                 dlog('Config file not found: ' + configFile);
+                readFromFile = false;
                 // Parse an empty JSON object to use the defaults.
                 return BluePromise.resolve('{}');
             }
         }).then(function (contents) {
+            if (readFromFile) {
+                dlog('Read config file: ' + configFile);
+            }
             _this.config = JSON.parse(contents);
         });
     };
