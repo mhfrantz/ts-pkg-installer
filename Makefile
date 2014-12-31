@@ -27,7 +27,7 @@ install-tsd:
 	$(TSD) reinstall
 
 lint:
-	ls $(TS_SRC) $(TSD_SRC) | xargs -n1 node_modules/.bin/tslint --config tslint.json --file
+	ls $(TS_SRC) | xargs -n1 node_modules/.bin/tslint --config tslint.json --file
 
 documentation :
 	node_modules/.bin/groc --except "**/node_modules/**" --except "**/typings/**" "**/*.ts" README.md
@@ -40,7 +40,6 @@ unittest: lint compile
 cucumber: lint compile
 	node_modules/.bin/cucumber-js --tags '~@todo'
 
-TSD_SRC=$(wildcard lib/export/*.d.ts)
 TS_SRC=$(filter-out %.d.ts,$(wildcard bin/*.ts test/*.ts test/data/*/*.ts features/step_definitions/*.ts))
 TS_OBJ=$(patsubst %.ts,%.js,$(TS_SRC))
 TSC=./node_modules/.bin/tsc
