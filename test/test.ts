@@ -12,7 +12,8 @@ import path = require('path');
 describe('ts-pkg-installer', () => {
   var dlog = debug('ts-pkg-installer:test');
   var expect = chai.expect;
-  var script = path.join('bin', 'ts-pkg-installer.sh');
+  var script = path.join(process.cwd(), 'bin', 'ts-pkg-installer.sh');
+  var testData = path.join(process.cwd(), 'test', 'data');
 
   function run(args: Array<string>, callback: (error: Error, stdout: string, stderr: string) => void): void {
     // Run the ts-pkg-installer script with specified arguments.
@@ -90,6 +91,38 @@ describe('ts-pkg-installer', () => {
     run(['-v', '--dry-run'], function (error: Error, stdout: string, stderr: string): void {
       expect(error).to.equal(null);
       expect(stderr).to.contain('ts-pkg-installer Dry run');
+      expect(stdout).to.equal('');
+      done();
+    });
+  });
+
+  it('skips reading the config file when it does not exists', (done: MochaDone) => {
+    // Change to a directory containing no config file.
+    process.chdir(path.join(testData, 'none'));
+    run(['-v', '-n'], function (error: Error, stdout: string, stderr: string): void {
+      expect(error).to.equal(null);
+      expect(stderr).to.contain('ts-pkg-installer Config file not found: tspi.json');
+      expect(stdout).to.equal('');
+      done();
+    });
+  });
+
+  it('reads the default config file when it exists', (done: MochaDone) => {
+    // Change to a directory containing a config file.
+    process.chdir(path.join(testData, 'default'));
+    run(['-v', '-n'], function (error: Error, stdout: string, stderr: string): void {
+      expect(error).to.equal(null);
+      expect(stderr).to.contain('ts-pkg-installer Read config file: tspi.json');
+      expect(stdout).to.equal('');
+      done();
+    });
+  });
+
+  it('reads the specified config file', (done: MochaDone) => {
+    var configFile = path.join(testData, 'default', 'tspi.json');
+    run(['-v', '-n', '-f', configFile], function (error: Error, stdout: string, stderr: string): void {
+      expect(error).to.equal(null);
+      expect(stderr).to.contain('ts-pkg-installer Read config file: ' + configFile);
       expect(stdout).to.equal('');
       done();
     });
