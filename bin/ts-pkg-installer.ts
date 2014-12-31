@@ -11,8 +11,11 @@ import assert = require('assert');
 import BluePromise = require('bluebird');
 import commander = require('commander');
 import debug = require('debug');
+import fs = require('fs');
 import glob = require('glob');
 import path = require('path');
+
+BluePromise.longStackTraces();
 
 // Command-line options, describing the structure of options in commander.
 class Options {
@@ -29,9 +32,10 @@ class Options {
 
 var defaultOptions = new Options();
 
+// ## CLI
 // Define the CLI.
 commander
-  .option('-f, --config-file', 'Config file [' + defaultOptions.configFile + ']', defaultOptions.configFile)
+  .option('-f, --config-file <path>', 'Config file [' + defaultOptions.configFile + ']', defaultOptions.configFile)
   .option('-n, --dry-run', 'Dry run (display what would happen without taking action)')
   .option('-v, --verbose', 'Verbose logging')
   .version('1.0.0');
@@ -46,13 +50,22 @@ var exportDirGlob = path.join('lib', 'export', '*.d.ts');
 // Point to the location where typings will be exported.
 var typingsDir = path.join('..', '..', 'typings');
 
-// Configuration data from tspm.json
+// ## IConfig
+// Configuration data from tspi.json
 interface IConfig {
 }
 
-// Configuration data from package.json
+// ## IPackageConfig
+// Configuration data from package.json (the part we care about).
 interface IPackageConfig {
 }
+
+// ## IFSAsync
+interface IFSAsync {
+  existsAsync: Function;
+  readFileAsync: Function;
+}
+var fsAsync = <IFSAsync> BluePromise.promisifyAll(fs);
 
 // ## TypeScriptPackageInstaller
 // Used as the NPM postinstall script, this will do the following:
@@ -102,9 +115,20 @@ class TypeScriptPackageInstaller {
   // Read the configuration file for this utility.
   private readConfigFile(): BluePromise<void> {
     var configFile = this.options.configFile;
-    // TODO
-    this.config = {};
-    return BluePromise.resolve();
+    return fsAsync.existsAsync(configFile)
+      .then((exists: boolean): BluePromise<string> => {
+        if (exists) {
+          dlog('Reading config file: ' + configFile);
+          return fsAsync.readFileAsync(configFile, 'utf8');
+        } else {
+          dlog('Config file not found: ' + configFile);
+          // Parse an empty JSON object to use the defaults.
+          return BluePromise.resolve('{}');
+        }
+      })
+      .then((contents: string): void => {
+        this.config = <IConfig> JSON.parse(contents);
+      });
   }
 
   // Read the package configuration.
