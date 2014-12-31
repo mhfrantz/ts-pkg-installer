@@ -41,10 +41,10 @@ cucumber: lint compile
 	node_modules/.bin/cucumber-js --tags '~@todo'
 
 TSD_SRC=$(wildcard lib/export/*.d.ts)
-TS_SRC=$(filter-out %.d.ts,$(wildcard bin/*.ts test/*.ts features/step_definitions/*.ts))
+TS_SRC=$(filter-out %.d.ts,$(wildcard bin/*.ts test/*.ts test/data/*/*.ts features/step_definitions/*.ts))
 TS_OBJ=$(patsubst %.ts,%.js,$(TS_SRC))
 TSC=./node_modules/.bin/tsc
-TSC_OPTS=--module commonjs --target ES5 --sourceMap
+TSC_OPTS=--module commonjs --target ES5 --sourceMap --declaration
 
 compile: $(TS_OBJ)
 

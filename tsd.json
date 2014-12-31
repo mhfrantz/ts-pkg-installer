@@ -28,6 +28,15 @@
     },
     "bluebird/bluebird.d.ts": {
       "commit": "ca32947b75a2b1203779dac7154ffbc232746e4d"
+    },
+    "rimraf/rimraf.d.ts": {
+      "commit": "6959dc430e4aeb24a1e392c6f824ef723d9ca85c"
+    },
+    "mkdirp/mkdirp.d.ts": {
+      "commit": "6959dc430e4aeb24a1e392c6f824ef723d9ca85c"
+    },
+    "ncp/ncp.d.ts": {
+      "commit": "9872b853d6facd11ab4eba733b2408e249d85082"
     }
   }
 }

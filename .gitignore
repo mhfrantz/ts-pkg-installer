@@ -29,4 +29,9 @@ node_modules
 typings/
 *.js
 *.js.map
+*.d.ts
 !bin/*.js
+!test/data/*/*.js
+!test/data/*/*.d.ts
+
+o/
