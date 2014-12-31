@@ -28,12 +28,30 @@ var defaultOptions = new Options();
 commander.option('-f, --config-file <path>', 'Config file [' + defaultOptions.configFile + ']', defaultOptions.configFile).option('-n, --dry-run', 'Dry run (display what would happen without taking action)').option('-v, --verbose', 'Verbose logging').version('1.0.0');
 var debugNamespace = 'ts-pkg-installer';
 var dlog = debug(debugNamespace);
-// Name of the configuration file for the node package.
-var packageConfigFile = 'package.json';
 // Point to the standard location for exported module declarations.
 var exportDirGlob = path.join('lib', 'export', '*.d.ts');
 // Point to the location where typings will be exported.
 var typingsDir = path.join('..', '..', 'typings');
+// ## Config
+// Configuration data from tspi.json
+var Config = (function () {
+    function Config(config) {
+        if (config === void 0) { config = {}; }
+        this.packageConfig = config.packageConfig || 'package.json';
+    }
+    return Config;
+})();
+var defaultConfig = new Config();
+// ## PackageConfig
+// Configuration data from package.json (the part we care about).
+var PackageConfig = (function () {
+    function PackageConfig(config) {
+        if (config === void 0) { config = {}; }
+        this.name = config.name;
+        this.main = config.main || 'index.js';
+    }
+    return PackageConfig;
+})();
 // ## fsExistsAsync
 // Special handling for fs.exists, which does not conform to Node.js standards for async interfaces.
 // We must first normalize the fs.exists API to give it the node-like callback signature.
@@ -104,15 +122,23 @@ var TypeScriptPackageInstaller = (function () {
         }).then(function (contents) {
             if (readFromFile) {
                 dlog('Read config file: ' + configFile);
+                dlog('Config file contents:\n' + contents);
             }
-            _this.config = JSON.parse(contents);
+            _this.config = new Config(JSON.parse(contents));
         });
     };
     // Read the package configuration.
     TypeScriptPackageInstaller.prototype.readPackageConfigFile = function () {
-        // TODO
-        this.packageConfig = {};
-        return BluePromise.resolve();
+        var _this = this;
+        assert(this.config && this.config.packageConfig);
+        var packageConfigFile = this.config.packageConfig;
+        dlog('Reading package config file: ' + packageConfigFile);
+        return fsReadFileAsync(packageConfigFile, 'utf8').then(function (contents) {
+            dlog('Read package config file: ' + packageConfigFile);
+            _this.packageConfig = new PackageConfig(JSON.parse(contents));
+        }).catch(function (error) {
+            throw new Error('Package config file could not be read: ' + packageConfigFile);
+        });
     };
     // Wrap the exported declaration file based on the "main" file from package.json.
     TypeScriptPackageInstaller.prototype.wrapDeclaration = function () {

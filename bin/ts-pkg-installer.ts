@@ -43,21 +43,33 @@ commander
 var debugNamespace = 'ts-pkg-installer';
 var dlog: debug.Debugger = debug(debugNamespace);
 
-// Name of the configuration file for the node package.
-var packageConfigFile = 'package.json';
 // Point to the standard location for exported module declarations.
 var exportDirGlob = path.join('lib', 'export', '*.d.ts');
 // Point to the location where typings will be exported.
 var typingsDir = path.join('..', '..', 'typings');
 
-// ## IConfig
+// ## Config
 // Configuration data from tspi.json
-interface IConfig {
+class Config {
+  packageConfig: string;
+
+  constructor(config: any = {}) {
+    this.packageConfig = config.packageConfig || 'package.json';
+  }
 }
 
-// ## IPackageConfig
+var defaultConfig = new Config();
+
+// ## PackageConfig
 // Configuration data from package.json (the part we care about).
-interface IPackageConfig {
+class PackageConfig {
+  name: string;
+  main: string;
+
+  constructor(config: any = {}) {
+    this.name = config.name;
+    this.main = config.main || 'index.js';
+  }
 }
 
 // ## fsExistsAsync
@@ -92,8 +104,8 @@ var fsReadFileAsync: IFsReadFileAsync = <IFsReadFileAsync> BluePromise.promisify
 class TypeScriptPackageInstaller {
 
   private options: Options;
-  private config: IConfig;
-  private packageConfig: IPackageConfig;
+  private config: Config;
+  private packageConfig: PackageConfig;
 
   constructor (options: Options = defaultOptions) {
     this.options = options;
@@ -149,16 +161,26 @@ class TypeScriptPackageInstaller {
       .then((contents: string): void => {
         if (readFromFile) {
           dlog('Read config file: ' + configFile);
+          dlog('Config file contents:\n' + contents);
         }
-        this.config = <IConfig> JSON.parse(contents);
+        this.config = new Config(JSON.parse(contents));
       });
   }
 
   // Read the package configuration.
   private readPackageConfigFile(): BluePromise<void> {
-    // TODO
-    this.packageConfig = {};
-    return BluePromise.resolve();
+    assert(this.config && this.config.packageConfig);
+    var packageConfigFile: string = this.config.packageConfig;
+    dlog('Reading package config file: ' + packageConfigFile);
+    return fsReadFileAsync(packageConfigFile, 'utf8')
+      .then((contents: string): void => {
+        dlog('Read package config file: ' + packageConfigFile);
+        this.packageConfig = new PackageConfig(JSON.parse(contents));
+      })
+      .catch((error: any): void => {
+        // Create a more user-friendly error message
+        throw new Error('Package config file could not be read: ' + packageConfigFile);
+      });
   }
 
   // Wrap the exported declaration file based on the "main" file from package.json.
