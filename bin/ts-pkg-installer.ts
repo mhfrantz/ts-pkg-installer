@@ -153,6 +153,13 @@ class TypeScriptPackageInstaller {
           return fsReadFileAsync(configFile, 'utf8');
         } else {
           dlog('Config file not found: ' + configFile);
+
+          // If they specified a config file, we will fail if it does not exist.
+          if (configFile !== defaultOptions.configFile) {
+            throw new Error('Config file does not exist: ' + configFile);
+          }
+
+          // Otherwise, just use the defaults (as if parsing an empty config file).
           readFromFile = false;
           // Parse an empty JSON object to use the defaults.
           return BluePromise.resolve('{}');

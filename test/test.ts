@@ -128,6 +128,16 @@ describe('ts-pkg-installer', () => {
     });
   });
 
+  it('fails if the specified config file does not exist', (done: MochaDone) => {
+    var configFile = 'this/file/does/not/exist';
+    run(['-n', '-f', configFile], function (error: Error, stdout: string, stderr: string): void {
+      expect(error).to.not.equal(null);
+      expect(stderr).to.contain('Config file does not exist: ' + configFile);
+      expect(stdout).to.equal('');
+      done();
+    });
+  });
+
   it('reads the default package config file when it exists', (done: MochaDone) => {
     // Current directory contains package.json, so we can run it from here.
     run(['-v', '-n'], function (error: Error, stdout: string, stderr: string): void {
