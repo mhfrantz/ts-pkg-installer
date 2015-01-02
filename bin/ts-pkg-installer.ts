@@ -61,6 +61,7 @@ class Config {
 
   constructor(config: any = {}) {
     this.packageConfig = config.packageConfig || 'package.json';
+    this.mainDeclaration = config.mainDeclaration;
   }
 }
 

@@ -38,6 +38,7 @@ var Config = (function () {
     function Config(config) {
         if (config === void 0) { config = {}; }
         this.packageConfig = config.packageConfig || 'package.json';
+        this.mainDeclaration = config.mainDeclaration;
     }
     return Config;
 })();

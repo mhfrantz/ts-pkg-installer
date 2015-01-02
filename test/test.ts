@@ -274,6 +274,19 @@ describe('ts-pkg-installer', () => {
       });
     });
 
+    it('allows specifying alternate main declaration file', (done: MochaDone) => {
+      var testData: string = path.join(testDataRoot, 'alternate-main');
+      run(testData, ['-v', '-n'], function (error: Error, stdout: string, stderr: string): void {
+        expect(error).to.equal(null);
+        expect(stderr).to.contain('ts-pkg-installer Wrapped main declaration file:\n' +
+                                  'declare module \'alternate-main\' {\n' +
+                                  'export declare function alternate(): void;\n' +
+                                  '}\n\n');
+        expect(stdout).to.equal('');
+        done();
+      });
+    });
+
   });
 
 });
