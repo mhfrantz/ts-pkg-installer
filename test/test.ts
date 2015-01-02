@@ -16,6 +16,7 @@ import ncp = require('ncp');
 import path = require('path');
 import rimraf = require('rimraf');
 
+// ## ts-pkg-installer
 describe('ts-pkg-installer', () => {
   var dlog = debug('ts-pkg-installer:test');
   var expect = chai.expect;
@@ -89,170 +90,190 @@ describe('ts-pkg-installer', () => {
     process.chdir(cwdSave);
   });
 
-  it('displays usage statement when --help is specified', (done: MochaDone) => {
-    run(nominalTestData, ['--help'], function (error: Error, stdout: string, stderr: string): void {
-      expect(error).to.equal(null);
-      expect(stderr).to.equal('');
-      expect(stdout).to.contain('Usage: ts-pkg-installer');
-      done();
+  // ### Basic CLI Features
+  describe('Basic CLI Features', () => {
+
+    it('displays usage statement when --help is specified', (done: MochaDone) => {
+      run(nominalTestData, ['--help'], function (error: Error, stdout: string, stderr: string): void {
+        expect(error).to.equal(null);
+        expect(stderr).to.equal('');
+        expect(stdout).to.contain('Usage: ts-pkg-installer');
+        done();
+      });
     });
+
+    it('displays usage statement when -h is specified', (done: MochaDone) => {
+      run(nominalTestData, ['-h'], function (error: Error, stdout: string, stderr: string): void {
+        expect(error).to.equal(null);
+        expect(stderr).to.equal('');
+        expect(stdout).to.contain('Usage: ts-pkg-installer');
+        done();
+      });
+    });
+
+    it('supports verbose mode (-v)', (done: MochaDone) => {
+      run(nominalTestData, ['-v'], function (error: Error, stdout: string, stderr: string): void {
+        expect(error).to.equal(null);
+        expect(stderr).to.contain('ts-pkg-installer Verbose output');
+        expect(stdout).to.equal('');
+        done();
+      });
+    });
+
+    it('supports verbose mode (--verbose)', (done: MochaDone) => {
+      run(nominalTestData, ['--verbose'], function (error: Error, stdout: string, stderr: string): void {
+        expect(error).to.equal(null);
+        expect(stderr).to.contain('ts-pkg-installer Verbose output');
+        expect(stdout).to.equal('');
+        done();
+      });
+    });
+
+    it('supports dry run mode (-n)', (done: MochaDone) => {
+      run(nominalTestData, ['-v', '-n'], function (error: Error, stdout: string, stderr: string): void {
+        expect(error).to.equal(null);
+        expect(stderr).to.contain('ts-pkg-installer Dry run');
+        expect(stdout).to.equal('');
+        done();
+      });
+    });
+
+    it('supports dry run mode (--dry-run)', (done: MochaDone) => {
+      run(nominalTestData, ['-v', '--dry-run'], function (error: Error, stdout: string, stderr: string): void {
+        expect(error).to.equal(null);
+        expect(stderr).to.contain('ts-pkg-installer Dry run');
+        expect(stdout).to.equal('');
+        done();
+      });
+    });
+
   });
 
-  it('displays usage statement when -h is specified', (done: MochaDone) => {
-    run(nominalTestData, ['-h'], function (error: Error, stdout: string, stderr: string): void {
-      expect(error).to.equal(null);
-      expect(stderr).to.equal('');
-      expect(stdout).to.contain('Usage: ts-pkg-installer');
-      done();
+  // ### Config File
+  describe('Config File', () => {
+
+    it('skips reading the config file when it does not exists', (done: MochaDone) => {
+      // Use a directory containing no config file.
+      var testData = path.join(testDataRoot, 'none');
+      run(testData, ['-v', '-n'], function (error: Error, stdout: string, stderr: string): void {
+        expect(error).to.equal(null);
+        expect(stderr).to.contain('ts-pkg-installer Config file not found: tspi.json');
+        expect(stdout).to.equal('');
+        done();
+      });
     });
+
+    it('reads the default config file when it exists', (done: MochaDone) => {
+      // Use a directory containing a config file.
+      var testData = path.join(testDataRoot, 'default');
+      run(testData, ['-v', '-n'], function (error: Error, stdout: string, stderr: string): void {
+        expect(error).to.equal(null);
+        expect(stderr).to.contain('ts-pkg-installer Read config file: tspi.json');
+        expect(stdout).to.equal('');
+        done();
+      });
+    });
+
+    it('reads the specified config file', (done: MochaDone) => {
+      var configFile = path.join(testDataRoot, 'default', 'tspi.json');
+      run(nominalTestData, ['-v', '-n', '-f', configFile], function (error: Error, stdout: string, stderr: string): void {
+        expect(error).to.equal(null);
+        expect(stderr).to.contain('ts-pkg-installer Read config file: ' + configFile);
+        expect(stdout).to.equal('');
+        done();
+      });
+    });
+
+    it('fails if the specified config file does not exist', (done: MochaDone) => {
+      var configFile = 'this/file/does/not/exist';
+      run(nominalTestData, ['-n', '-f', configFile], function (error: Error, stdout: string, stderr: string): void {
+        expect(error).to.not.equal(null);
+        expect(stderr).to.contain('Config file does not exist: ' + configFile);
+        expect(stdout).to.equal('');
+        done();
+      });
+    });
+
   });
 
-  it('supports verbose mode (-v)', (done: MochaDone) => {
-    run(nominalTestData, ['-v'], function (error: Error, stdout: string, stderr: string): void {
-      expect(error).to.equal(null);
-      expect(stderr).to.contain('ts-pkg-installer Verbose output');
-      expect(stdout).to.equal('');
-      done();
+  // ### Package Config File
+  describe('Package Config File', () => {
+
+    it('reads the default package config file when it exists', (done: MochaDone) => {
+      // Nominal directory contains package.json, so we can run it from here.
+      run(nominalTestData, ['-v', '-n'], function (error: Error, stdout: string, stderr: string): void {
+        expect(error).to.equal(null);
+        expect(stderr).to.contain('ts-pkg-installer Read package config file: package.json');
+        expect(stdout).to.equal('');
+        done();
+      });
     });
+
+    it('fails when no package config exists', (done: MochaDone) => {
+      // Point to a config file that points to a nonexistent package config.
+      var configFile = path.join(testDataRoot, 'no-package-config', 'tspi.json');
+      run(nominalTestData, ['-f', configFile], function (error: Error, stdout: string, stderr: string): void {
+        expect(error).to.not.equal(null);
+        expect(stderr).to.contain('Package config file could not be read: this/package/config/does/not/exist');
+        expect(stdout).to.equal('');
+        done();
+      });
+    });
+
   });
 
-  it('supports verbose mode (--verbose)', (done: MochaDone) => {
-    run(nominalTestData, ['--verbose'], function (error: Error, stdout: string, stderr: string): void {
-      expect(error).to.equal(null);
-      expect(stderr).to.contain('ts-pkg-installer Verbose output');
-      expect(stdout).to.equal('');
-      done();
-    });
-  });
+  // ### Declaration Wrapping
+  describe('Declaration Wrapping', () => {
 
-  it('supports dry run mode (-n)', (done: MochaDone) => {
-    run(nominalTestData, ['-v', '-n'], function (error: Error, stdout: string, stderr: string): void {
-      expect(error).to.equal(null);
-      expect(stderr).to.contain('ts-pkg-installer Dry run');
-      expect(stdout).to.equal('');
-      done();
+    it('wraps a nominal main declaration', (done: MochaDone) => {
+      run(nominalTestData, ['-v', '-n'], function (error: Error, stdout: string, stderr: string): void {
+        expect(error).to.equal(null);
+        expect(stderr).to.contain('ts-pkg-installer Wrapped main declaration file:\n' +
+                                  '/// <reference path="../../../typings/node/node.d.ts" />\n' +
+                                  'declare module \'nominal\' {\n' +
+                                  'export declare function nominal(): void;\n' +
+                                  '}\n\n');
+        expect(stdout).to.equal('');
+        done();
+      });
     });
-  });
 
-  it('supports dry run mode (--dry-run)', (done: MochaDone) => {
-    run(nominalTestData, ['-v', '--dry-run'], function (error: Error, stdout: string, stderr: string): void {
-      expect(error).to.equal(null);
-      expect(stderr).to.contain('ts-pkg-installer Dry run');
-      expect(stdout).to.equal('');
-      done();
+    it('wraps a minimal main declaration', (done: MochaDone) => {
+      var testData: string = path.join(testDataRoot, 'none');
+      run(testData, ['-v', '-n'], function (error: Error, stdout: string, stderr: string): void {
+        expect(error).to.equal(null);
+        expect(stderr).to.contain('ts-pkg-installer Wrapped main declaration file:\n' +
+                                  'declare module \'none\' {\n' +
+                                  'export declare function index(): void;\n' +
+                                  '}\n\n');
+        expect(stdout).to.equal('');
+        done();
+      });
     });
-  });
 
-  it('skips reading the config file when it does not exists', (done: MochaDone) => {
-    // Use a directory containing no config file.
-    var testData = path.join(testDataRoot, 'none');
-    run(testData, ['-v', '-n'], function (error: Error, stdout: string, stderr: string): void {
-      expect(error).to.equal(null);
-      expect(stderr).to.contain('ts-pkg-installer Config file not found: tspi.json');
-      expect(stdout).to.equal('');
-      done();
+    it('wraps an empty main declaration', (done: MochaDone) => {
+      var testData: string = path.join(testDataRoot, 'empty-main');
+      run(testData, ['-v', '-n'], function (error: Error, stdout: string, stderr: string): void {
+        expect(error).to.equal(null);
+        expect(stderr).to.contain('ts-pkg-installer Wrapped main declaration file:\n' +
+                                  'declare module \'empty-main\' {\n' +
+                                  '}\n\n');
+        expect(stdout).to.equal('');
+        done();
+      });
     });
-  });
 
-  it('reads the default config file when it exists', (done: MochaDone) => {
-    // Use a directory containing a config file.
-    var testData = path.join(testDataRoot, 'default');
-    run(testData, ['-v', '-n'], function (error: Error, stdout: string, stderr: string): void {
-      expect(error).to.equal(null);
-      expect(stderr).to.contain('ts-pkg-installer Read config file: tspi.json');
-      expect(stdout).to.equal('');
-      done();
+    it('fails if no main declaration file exists', (done: MochaDone) => {
+      var testData: string = path.join(testDataRoot, 'js-main');
+      run(testData, ['-n'], function (error: Error, stdout: string, stderr: string): void {
+        expect(error).to.not.equal(null);
+        expect(stderr).to.contain('Main declaration file could not be wrapped');
+        expect(stderr).to.contain('OperationalError: ENOENT, open \'index.d.ts\'');
+        expect(stdout).to.equal('');
+        done();
+      });
     });
-  });
 
-  it('reads the specified config file', (done: MochaDone) => {
-    var configFile = path.join(testDataRoot, 'default', 'tspi.json');
-    run(nominalTestData, ['-v', '-n', '-f', configFile], function (error: Error, stdout: string, stderr: string): void {
-      expect(error).to.equal(null);
-      expect(stderr).to.contain('ts-pkg-installer Read config file: ' + configFile);
-      expect(stdout).to.equal('');
-      done();
-    });
-  });
-
-  it('fails if the specified config file does not exist', (done: MochaDone) => {
-    var configFile = 'this/file/does/not/exist';
-    run(nominalTestData, ['-n', '-f', configFile], function (error: Error, stdout: string, stderr: string): void {
-      expect(error).to.not.equal(null);
-      expect(stderr).to.contain('Config file does not exist: ' + configFile);
-      expect(stdout).to.equal('');
-      done();
-    });
-  });
-
-  it('reads the default package config file when it exists', (done: MochaDone) => {
-    // Nominal directory contains package.json, so we can run it from here.
-    run(nominalTestData, ['-v', '-n'], function (error: Error, stdout: string, stderr: string): void {
-      expect(error).to.equal(null);
-      expect(stderr).to.contain('ts-pkg-installer Read package config file: package.json');
-      expect(stdout).to.equal('');
-      done();
-    });
-  });
-
-  it('fails when no package config exists', (done: MochaDone) => {
-    // Point to a config file that points to a nonexistent package config.
-    var configFile = path.join(testDataRoot, 'no-package-config', 'tspi.json');
-    run(nominalTestData, ['-f', configFile], function (error: Error, stdout: string, stderr: string): void {
-      expect(error).to.not.equal(null);
-      expect(stderr).to.contain('Package config file could not be read: this/package/config/does/not/exist');
-      expect(stdout).to.equal('');
-      done();
-    });
-  });
-
-  it('wraps a nominal main declaration', (done: MochaDone) => {
-    run(nominalTestData, ['-v', '-n'], function (error: Error, stdout: string, stderr: string): void {
-      expect(error).to.equal(null);
-      expect(stderr).to.contain('ts-pkg-installer Wrapped main declaration file:\n' +
-                                '/// <reference path="../../../typings/node/node.d.ts" />\n' +
-                                'declare module \'nominal\' {\n' +
-                                'export declare function nominal(): void;\n' +
-                                '}\n\n');
-      expect(stdout).to.equal('');
-      done();
-    });
-  });
-
-  it('wraps a minimal main declaration', (done: MochaDone) => {
-    var testData: string = path.join(testDataRoot, 'none');
-    run(testData, ['-v', '-n'], function (error: Error, stdout: string, stderr: string): void {
-      expect(error).to.equal(null);
-      expect(stderr).to.contain('ts-pkg-installer Wrapped main declaration file:\n' +
-                                'declare module \'none\' {\n' +
-                                'export declare function index(): void;\n' +
-                                '}\n\n');
-      expect(stdout).to.equal('');
-      done();
-    });
-  });
-
-  it('wraps an empty main declaration', (done: MochaDone) => {
-    var testData: string = path.join(testDataRoot, 'empty-main');
-    run(testData, ['-v', '-n'], function (error: Error, stdout: string, stderr: string): void {
-      expect(error).to.equal(null);
-      expect(stderr).to.contain('ts-pkg-installer Wrapped main declaration file:\n' +
-                                'declare module \'empty-main\' {\n' +
-                                '}\n\n');
-      expect(stdout).to.equal('');
-      done();
-    });
-  });
-
-  it('fails if no main declaration file exists', (done: MochaDone) => {
-    var testData: string = path.join(testDataRoot, 'js-main');
-    run(testData, ['-n'], function (error: Error, stdout: string, stderr: string): void {
-      expect(error).to.not.equal(null);
-      expect(stderr).to.contain('Main declaration file could not be wrapped');
-      expect(stderr).to.contain('OperationalError: ENOENT, open \'index.d.ts\'');
-      expect(stdout).to.equal('');
-      done();
-    });
   });
 
 });
