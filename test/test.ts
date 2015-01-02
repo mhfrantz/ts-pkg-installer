@@ -229,7 +229,7 @@ describe('ts-pkg-installer', () => {
       run(nominalTestData, ['-v', '-n'], function (error: Error, stdout: string, stderr: string): void {
         expect(error).to.equal(null);
         expect(stderr).to.contain('ts-pkg-installer Wrapped main declaration file:\n' +
-                                  '/// <reference path="../../../typings/node/node.d.ts" />\n' +
+                                  '/// <reference path="../foo/foo.d.ts" />\n' +
                                   'declare module \'nominal\' {\n' +
                                   'export declare function nominal(): void;\n' +
                                   '}\n\n');

@@ -1,2 +1,2 @@
-/// <reference path="../../../typings/node/node.d.ts" />
+/// <reference path="typings/foo/foo.d.ts" />
 export declare function nominal(): void;

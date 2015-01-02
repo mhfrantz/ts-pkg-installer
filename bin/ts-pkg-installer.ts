@@ -43,11 +43,6 @@ commander
 var debugNamespace = 'ts-pkg-installer';
 var dlog: debug.Debugger = debug(debugNamespace);
 
-// Point to the standard location for exported module declarations.
-var exportDirGlob = path.join('lib', 'export', '*.d.ts');
-// Point to the location where typings will be exported.
-var typingsDir = path.join('..', '..', 'typings');
-
 // ## Config
 // Configuration data from tspi.json
 class Config {
@@ -59,9 +54,23 @@ class Config {
   // JS file, as declared in package config.
   mainDeclaration: string;
 
+  // Typings directory in which our own TSD writes.  Default to 'typings'.
+  localTypingsDir: string;
+
+  // Typings directory into which the module declaration file and any dependencies will be written.  By default, this
+  // will be ../../typings.
+  exportedTypingsDir: string;
+
+  // Subdirectory of typings directory in which our module declaration file is written.  By default, this is the
+  // package name.
+  typingsSubdir: string;
+
   constructor(config: any = {}) {
     this.packageConfig = config.packageConfig || 'package.json';
     this.mainDeclaration = config.mainDeclaration;
+    this.localTypingsDir = config.localTypingsDir || 'typings';
+    this.exportedTypingsDir = config.exportedTypingsDir || path.join('..', '..', 'typings');
+    this.typingsSubdir = config.typingsSubdir;
   }
 }
 
@@ -119,6 +128,9 @@ class TypeScriptPackageInstaller {
   private packageConfig: PackageConfig;
   private wrappedMainDeclaration: string;
 
+  // Directory containing the wrapped main declaration file that we export.
+  private exportedTypingsSubdir: string;
+
   constructor (options: Options = defaultOptions) {
     this.options = options;
     this.parseInitOptions();
@@ -130,6 +142,7 @@ class TypeScriptPackageInstaller {
 
     return this.readConfigFile()
       .then(() => { return this.readPackageConfigFile(); })
+      .then(() => { return this.determineExportedTypingsSubdir(); })
       .then(() => { return this.wrapMainDeclaration(); })
       .then(() => { return this.copyExportedModules(); })
       .then(() => { return this.haulTypings(); });
@@ -202,18 +215,34 @@ class TypeScriptPackageInstaller {
       });
   }
 
+  // Determine where we will write our main declaration file.
+  // - Side effect: Sets `this.config.typingsSubdir`, if not specified in config file
+  // - Side effect: Sets `this.exportedTypingsSubdir`.
+  private determineExportedTypingsSubdir(): void {
+    // Use the package name if no typings subdir specified.
+    if (!this.config.typingsSubdir) {
+      this.config.typingsSubdir = this.packageConfig.name;
+    }
+
+    this.exportedTypingsSubdir = path.join(this.config.exportedTypingsDir, this.config.typingsSubdir);
+  }
+
   // Wrap the main declaration file, by default based on the "main" JS file from package.json.
   private wrapMainDeclaration(): BluePromise<void> {
     assert(this.config);
+    assert(this.config.typingsSubdir);
 
     // Figure out what the main declaration file is.
-    var mainDeclarationFile = this.determineMainDeclaration();
+    var mainDeclarationFile: string = this.determineMainDeclaration();
+
+    // Determine the directory containing the file, so that we will be able to resolve relative reference paths.
+    var mainDeclarationDir: string = path.dirname(path.resolve(mainDeclarationFile));
 
     dlog('Reading main declaration file: ' + mainDeclarationFile);
     return fsReadFileAsync(mainDeclarationFile, 'utf8')
       .then((contents: string): BluePromise<string> => {
         dlog('Parsing main declaration file: ' + mainDeclarationFile);
-        return this.wrapMainDeclarationContents(contents);
+        return this.wrapMainDeclarationContents(contents, mainDeclarationDir);
       })
       .then((wrapped: string): void => {
         dlog('Wrapped main declaration file:\n' + wrapped);
@@ -240,22 +269,33 @@ class TypeScriptPackageInstaller {
   }
 
   // Wrap the main declaration file whose contents are provided.
-  private wrapMainDeclarationContents(contents: string): BluePromise<string> {
+  // - *contents*: Contents of the main declaration file (TypeScript *.d.ts file)
+  // - *referencePathDir*: Directory to resolve related reference paths.
+  private wrapMainDeclarationContents(contents: string, referencePathDir: string): BluePromise<string> {
     // Process each line in the main declaration file.
     var lines: string[] = contents.split('\n');
 
     // Recognize reference path lines that form the header.
-    var referencePathRegex = /^ *\/\/\/ *<reference *path *= *".*" *\/> *$/;
+    var referencePathRegex = /^ *\/\/\/ *<reference *path *= *"(.*)" *\/> *$/;
 
     // Maintain a state machine, separating the file into header and body sections.
     var state: DeclarationFileState = DeclarationFileState.Header;
 
     var reducer = (wrapped: string[], line: string): string[] => {
 
-      // See if we have a reference path.
-      var isReferencePath: boolean = line.match(referencePathRegex) && true;
       if (state === DeclarationFileState.Header) {
-        if (!isReferencePath) {
+        // See if we have a reference path.
+        var referencePathMatches: string[] = line.match(referencePathRegex);
+        var isReferencePath: boolean = referencePathMatches && true;
+        if (isReferencePath) {
+
+          // Rewrite the reference path relative to the destination typings directory.
+          var referencePath: string = referencePathMatches[1];
+          assert(referencePath);
+          line = this.rewriteReferencePath(referencePath, referencePathDir);
+
+        } else {
+
           // Transitioning out of header state, so emit the module declaration.
           wrapped.push(this.moduleDeclaration());
           state = DeclarationFileState.Body;
@@ -277,6 +317,19 @@ class TypeScriptPackageInstaller {
 
         return wrapped.join('\n');
       });
+  }
+
+  // Rewrite the reference path relative to the destination typings directory.
+  // - *referencePath*: TypeScript reference path
+  // - *dir*: Directory for resolving relative path
+  private rewriteReferencePath(referencePath: string, dir: string): string {
+    assert(this.config && this.config.typingsSubdir);
+    assert(this.config && this.config.localTypingsDir);
+
+    var localTypingsSubdir: string = path.resolve(path.join(this.config.localTypingsDir, this.config.typingsSubdir));
+    var currentPath: string = path.resolve(dir, referencePath);
+    var newPath: string = path.relative(localTypingsSubdir, currentPath);
+    return '/// <reference path="' + newPath + '" />';
   }
 
   // Return the TypeScript module declaration statement for this package.

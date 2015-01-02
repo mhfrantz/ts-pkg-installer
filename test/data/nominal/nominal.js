@@ -1,5 +1,5 @@
 // nominal.ts
-/// <reference path="../../../typings/node/node.d.ts"/>
+/// <reference path="typings/foo/foo.d.ts"/>
 function nominal() {
     return;
 }
