@@ -3,6 +3,7 @@
 ///<reference path="../typings/bluebird/bluebird.d.ts"/>
 ///<reference path="../typings/debug/debug.d.ts"/>
 ///<reference path="../typings/glob/glob.d.ts"/>
+///<reference path="../typings/mkdirp/mkdirp.d.ts"/>
 ///<reference path="../typings/node/node.d.ts"/>
 
 'use strict';
@@ -13,6 +14,7 @@ import commander = require('commander');
 import debug = require('debug');
 import fs = require('fs');
 import glob = require('glob');
+import mkdirp = require('mkdirp');
 import path = require('path');
 
 BluePromise.longStackTraces();
@@ -111,6 +113,20 @@ interface IFsReadFileAsync {
   (file: string, encoding: string): BluePromise<string>;
 }
 var fsReadFileAsync: IFsReadFileAsync = <IFsReadFileAsync> BluePromise.promisify(fs.readFile);
+
+// ## fsWriteFileAsync
+// fs.writeFile conforms to Node.js standards, so we only need to define the interface to make up for the deficiency in
+// the bluebird TSD.
+interface IFsWriteFileAsync {
+  (file: string, contents: string): BluePromise<void>;
+}
+var fsWriteFileAsync: IFsWriteFileAsync = <IFsWriteFileAsync> BluePromise.promisify(fs.writeFile);
+
+// ## mkdirp
+interface IMkDirP {
+  (path: string): BluePromise<void>;
+}
+var mkdirpAsync: IMkDirP = <IMkDirP> BluePromise.promisify(mkdirp);
 
 // ### DeclarationFileState
 // Maintain a state machine, separating the file into header and body sections.
@@ -341,8 +357,21 @@ class TypeScriptPackageInstaller {
   // Copy exported modules into typings
   private copyExportedModules(): BluePromise<void> {
     assert(this.config);
-    // TODO
-    return BluePromise.resolve();
+    assert(this.exportedTypingsSubdir);
+    assert(this.wrappedMainDeclaration);
+
+    // Create the directory.
+    dlog('Creating directory for main declaration file: ' + this.exportedTypingsSubdir);
+    return this.maybeDo((): BluePromise<void> => { return mkdirpAsync(this.exportedTypingsSubdir); })
+      .then((): BluePromise<void> => {
+        // Use the same basename.
+        var basename: string = path.basename(this.determineMainDeclaration());
+        var mainDeclaration: string = path.join(this.exportedTypingsSubdir, basename);
+        dlog('Writing main declaration file: ' + mainDeclaration);
+        return this.maybeDo((): BluePromise<void> => {
+          return fsWriteFileAsync(mainDeclaration, this.wrappedMainDeclaration);
+        });
+      });
   }
 
   // Incorporate typings from our own dependencies.
@@ -350,6 +379,15 @@ class TypeScriptPackageInstaller {
     assert(this.config);
     // TODO
     return BluePromise.resolve();
+  }
+
+  // Allow conditional execution based on dry run mode.
+  private maybeDo(action: () => BluePromise<void>): BluePromise<void> {
+    if (!this.options.dryRun) {
+      return action();
+    } else {
+      return BluePromise.resolve();
+    }
   }
 }
 

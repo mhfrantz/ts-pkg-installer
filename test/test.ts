@@ -68,17 +68,24 @@ describe('ts-pkg-installer', () => {
   // Generate a unique test output directory.
   var testOutputDir: string;
 
+  // Generate a subdirectory of the test output directory that resembles an NPM package location.
+  var testPackageDir: string;
+
   // Before each test, create and inhabit a unique test output directory.
   beforeEach(function (done: MochaDone): void {
     cwdSave = process.cwd();
 
     // Create an empty directory in which to run each test.
     testOutputDir = path.join(rootOutputDir, this.currentTest.fullTitle());
-    mkdirp(testOutputDir, (error: Error) => {
 
-      // Change into the test output directory to catch any output.
+    // Create a subdirectory that looks like an NPM installation location.
+    testPackageDir = path.join(testOutputDir, 'node_modules', 'test');
+
+    mkdirp(testPackageDir, (error: Error) => {
+
+      // Change into the package directory to catch any output.
       if (!error) {
-        process.chdir(testOutputDir);
+        process.chdir(testPackageDir);
       }
 
       done(error);
@@ -90,6 +97,15 @@ describe('ts-pkg-installer', () => {
     process.chdir(cwdSave);
   });
 
+  // Make sure there is no "typings" directory created.
+  function expectNoTypingsDir(done: MochaDone): void {
+    var typingsDir: string = path.join(testOutputDir, 'typings');
+    fs.exists(typingsDir, (exists: boolean): void => {
+      expect(exists).to.equal(false);
+      done();
+    });
+  }
+
   // ### Basic CLI Features
   describe('Basic CLI Features', () => {
 
@@ -98,7 +114,9 @@ describe('ts-pkg-installer', () => {
         expect(error).to.equal(null);
         expect(stderr).to.equal('');
         expect(stdout).to.contain('Usage: ts-pkg-installer');
-        done();
+
+        // We should exit before writing anything.
+        expectNoTypingsDir(done);
       });
     });
 
@@ -107,7 +125,9 @@ describe('ts-pkg-installer', () => {
         expect(error).to.equal(null);
         expect(stderr).to.equal('');
         expect(stdout).to.contain('Usage: ts-pkg-installer');
-        done();
+
+        // We should exit before writing anything.
+        expectNoTypingsDir(done);
       });
     });
 
@@ -134,7 +154,9 @@ describe('ts-pkg-installer', () => {
         expect(error).to.equal(null);
         expect(stderr).to.contain('ts-pkg-installer Dry run');
         expect(stdout).to.equal('');
-        done();
+
+        // Dry run mode should prevent output.
+        expectNoTypingsDir(done);
       });
     });
 
@@ -143,7 +165,9 @@ describe('ts-pkg-installer', () => {
         expect(error).to.equal(null);
         expect(stderr).to.contain('ts-pkg-installer Dry run');
         expect(stdout).to.equal('');
-        done();
+
+        // Dry run mode should prevent output.
+        expectNoTypingsDir(done);
       });
     });
 
@@ -151,6 +175,11 @@ describe('ts-pkg-installer', () => {
 
   // ### Config File
   describe('Config File', () => {
+
+    // All of these tests are "dry run" mode, or failures, so nothing should be written.
+    afterEach((done: MochaDone) => {
+      expectNoTypingsDir(done);
+    });
 
     it('skips reading the config file when it does not exists', (done: MochaDone) => {
       // Use a directory containing no config file.
@@ -199,6 +228,11 @@ describe('ts-pkg-installer', () => {
   // ### Package Config File
   describe('Package Config File', () => {
 
+    // All of these tests are "dry run" mode, or failures, so nothing should be written.
+    afterEach((done: MochaDone) => {
+      expectNoTypingsDir(done);
+    });
+
     it('reads the default package config file when it exists', (done: MochaDone) => {
       // Nominal directory contains package.json, so we can run it from here.
       run(nominalTestData, ['-v', '-n'], function (error: Error, stdout: string, stderr: string): void {
@@ -224,6 +258,11 @@ describe('ts-pkg-installer', () => {
 
   // ### Declaration Wrapping
   describe('Declaration Wrapping', () => {
+
+    // All of these tests are "dry run" mode, or failures, so nothing should be written.
+    afterEach((done: MochaDone) => {
+      expectNoTypingsDir(done);
+    });
 
     it('wraps a nominal main declaration', (done: MochaDone) => {
       run(nominalTestData, ['-v', '-n'], function (error: Error, stdout: string, stderr: string): void {
@@ -283,6 +322,45 @@ describe('ts-pkg-installer', () => {
                                   'export declare function alternate(): void;\n' +
                                   '}\n\n');
         expect(stdout).to.equal('');
+        done();
+      });
+    });
+
+  });
+
+  // ### Copy Exported Modules
+  describe('Copy Exported Modules', () => {
+
+    it('copies a nominal exported module', (done: MochaDone) => {
+      run(nominalTestData, [], function (error: Error, stdout: string, stderr: string): void {
+        expect(error).to.equal(null);
+        expect(stdout).to.equal('');
+
+        var expectedPath: string = path.join(testOutputDir, 'typings', 'nominal', 'nominal.d.ts');
+        var expectedContents: string = (
+          '/// <reference path="../foo/foo.d.ts" />\n' +
+            'declare module \'nominal\' {\n' +
+            'export declare function nominal(): void;\n' +
+            '}\n');
+
+        var actualContents = fs.readFileSync(expectedPath, 'utf8');
+        expect(actualContents).to.deep.equal(expectedContents);
+
+        done();
+      });
+    });
+
+    it('allows specifying an alternate exported typings directory', (done: MochaDone) => {
+      var testData = path.join(testDataRoot, 'alternate-exported-typings-dir');
+      run(testData, ['-v'], function (error: Error, stdout: string, stderr: string): void {
+        expect(error).to.equal(null);
+        expect(stdout).to.equal('');
+
+        var expectedPath: string = path.join(testOutputDir,
+                                             'typings.alt', 'alternate-exported-typings-dir', 'index.d.ts');
+        var actualContents = fs.readFileSync(expectedPath, 'utf8');
+        expect(actualContents).to.be.ok;
+
         done();
       });
     });

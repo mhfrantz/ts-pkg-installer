@@ -3,6 +3,7 @@
 ///<reference path="../typings/bluebird/bluebird.d.ts"/>
 ///<reference path="../typings/debug/debug.d.ts"/>
 ///<reference path="../typings/glob/glob.d.ts"/>
+///<reference path="../typings/mkdirp/mkdirp.d.ts"/>
 ///<reference path="../typings/node/node.d.ts"/>
 'use strict';
 var assert = require('assert');
@@ -10,6 +11,7 @@ var BluePromise = require('bluebird');
 var commander = require('commander');
 var debug = require('debug');
 var fs = require('fs');
+var mkdirp = require('mkdirp');
 var path = require('path');
 BluePromise.longStackTraces();
 // Command-line options, describing the structure of options in commander.
@@ -62,6 +64,8 @@ function normalizedFsExists(file, callback) {
 }
 var fsExistsAsync = BluePromise.promisify(normalizedFsExists);
 var fsReadFileAsync = BluePromise.promisify(fs.readFile);
+var fsWriteFileAsync = BluePromise.promisify(fs.writeFile);
+var mkdirpAsync = BluePromise.promisify(mkdirp);
 // ### DeclarationFileState
 // Maintain a state machine, separating the file into header and body sections.
 var DeclarationFileState;
@@ -258,15 +262,38 @@ var TypeScriptPackageInstaller = (function () {
     };
     // Copy exported modules into typings
     TypeScriptPackageInstaller.prototype.copyExportedModules = function () {
+        var _this = this;
         assert(this.config);
-        // TODO
-        return BluePromise.resolve();
+        assert(this.exportedTypingsSubdir);
+        assert(this.wrappedMainDeclaration);
+        // Create the directory.
+        dlog('Creating directory for main declaration file: ' + this.exportedTypingsSubdir);
+        return this.maybeDo(function () {
+            return mkdirpAsync(_this.exportedTypingsSubdir);
+        }).then(function () {
+            // Use the same basename.
+            var basename = path.basename(_this.determineMainDeclaration());
+            var mainDeclaration = path.join(_this.exportedTypingsSubdir, basename);
+            dlog('Writing main declaration file: ' + mainDeclaration);
+            return _this.maybeDo(function () {
+                return fsWriteFileAsync(mainDeclaration, _this.wrappedMainDeclaration);
+            });
+        });
     };
     // Incorporate typings from our own dependencies.
     TypeScriptPackageInstaller.prototype.haulTypings = function () {
         assert(this.config);
         // TODO
         return BluePromise.resolve();
+    };
+    // Allow conditional execution based on dry run mode.
+    TypeScriptPackageInstaller.prototype.maybeDo = function (action) {
+        if (!this.options.dryRun) {
+            return action();
+        }
+        else {
+            return BluePromise.resolve();
+        }
     };
     return TypeScriptPackageInstaller;
 })();
