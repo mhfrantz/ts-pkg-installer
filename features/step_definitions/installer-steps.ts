@@ -9,7 +9,9 @@
 
 import BluePromise = require('bluebird');
 import chai = require('chai');
+import childProcess = require('child_process');
 import debug = require('debug');
+import fs = require('fs');
 import mkdirp = require('mkdirp');
 import ncp = require('ncp');
 import path = require('path');
@@ -34,6 +36,12 @@ interface IScenario {
 interface IWorld {
   scenarioName: string;
   testOutputDir: string;
+  pkgName: string;
+
+  child: childProcess.ChildProcess;
+  error: Error;
+  stdout: string;
+  stderr: string;
 }
 
 function wrapper() {
@@ -43,14 +51,28 @@ function wrapper() {
   var rootOutputDir = path.join(process.cwd(), 'features', 'o');
   var cwdSave = process.cwd();
 
+  // Function which runs a child process and captures the relevant data in the world object.
+  var execChild = function (world: IWorld, cwd: string, cmd: string, callback: ICallback) {
+    world.child = childProcess.exec(cmd, {'cwd': cwd}, function (error: Error, stdout: Buffer, stderr: Buffer) {
+      world.error = error;
+      world.stdout = stdout.toString();
+      world.stderr = stderr.toString();
+      dlog(world.error);
+      dlog(world.stdout);
+      dlog(world.stderr);
+      callback();
+    });
+  };
+
   // Set up a test area before each scenario.
   this.Before(function (scenario: IScenario, callback: ICallback) {
     var world = <IWorld> this;
     world.scenarioName = scenario.getName();
     expect(world.scenarioName).to.be.ok;
 
-    // Create a test output area for each scenario.
-    world.testOutputDir = path.join(rootOutputDir, world.scenarioName);
+    // Create a test output area for each scenario.  Replace spaces with underscores to avoid confusing NPM when it is
+    // run as a child process.
+    world.testOutputDir = path.join(rootOutputDir, world.scenarioName.replace(' ', '_'));
 
     // Remove the entire test output directory
     rimraf(world.testOutputDir, (error: Error): void => {
@@ -74,28 +96,51 @@ function wrapper() {
   });
 
   this.Given(/^an NPM package "([^"]*)" written in TypeScript$/, function (pkg: string, callback: ICallback) {
-    // Write code here that turns the phrase above into concrete actions
-    callback.pending();
+    // Save the package name for subsequent steps.
+    var world = <IWorld> this;
+    world.pkgName = pkg;
+
+    // Make sure there is a package with the specified name.
+    var pkgConfig: string = path.join(pkg, 'package.json');
+    fs.exists(pkgConfig, (exists: boolean): void => {
+      expect(exists).to.equal(true);
+      // Write code here that turns the phrase above into concrete actions
+      callback();
+    });
   });
 
   this.Given(/^a single file "([^"]*)" describing the interface$/, function (file: string, callback: ICallback) {
-    // Write code here that turns the phrase above into concrete actions
-    callback.pending();
+    // Verify that the file exists.
+    var world = <IWorld> this;
+    var fullPath: string = path.join(world.pkgName, file);
+    fs.exists(fullPath, (exists: boolean): void => {
+      expect(exists).to.equal(true);
+      callback();
+    });
   });
 
   this.When(/^"([^"]*)" package is installed$/, function (pkg: string, callback: ICallback) {
-    // Write code here that turns the phrase above into concrete actions
-    callback.pending();
+    // We use the "spine" package to install the other package, since it depends on both leaf packages.
+    var world = <IWorld> this;
+    var dir = path.join(world.testOutputDir, 'spine');
+    dlog('CWD is to be ' + dir);
+    dlog('Running npm install ' + world.pkgName);
+    execChild(world, dir, 'npm install ' + world.pkgName, callback);
   });
 
   this.When(/^the TypeScript package installer runs as a postinstall hook$/, function (callback: ICallback) {
-    // Write code here that turns the phrase above into concrete actions
-    callback.pending();
+    var world = <IWorld> this;
+    expect(world.error).to.equal(null);
+    expect(world.stderr).to.contain('ts-pkg-installer');
+    callback();
   });
 
   this.Then(/^"([^"]*)" will be copied into the typings directory\.$/, function (file: string, callback: ICallback) {
-    // Write code here that turns the phrase above into concrete actions
-    callback.pending();
+    var fullPath = path.join('typings', file);
+    fs.exists(fullPath, (exists: boolean): void => {
+      expect(exists).to.equal(true);
+      callback();
+    });
   });
 
   this.Given(/^an NPM package "([^"].*)" under development$/, function (pkg: string, callback: ICallback) {
