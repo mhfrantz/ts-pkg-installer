@@ -133,12 +133,12 @@ function wrapper() {
   this.When(/^the TypeScript package installer runs as a postinstall hook$/, function (callback: ICallback) {
     var world = <IWorld> this;
     expect(world.error).to.equal(null);
-    expect(world.stderr).to.contain('ts-pkg-installer');
+    expect(world.stdout).to.contain('> ts-pkg-installer');
     callback();
   });
 
   this.Then(/^"([^"]*)" will be copied into the typings directory\.$/, function (file: string, callback: ICallback) {
-    var fullPath = path.join('typings', file);
+    var fullPath = path.join('spine', 'typings', file);
     fs.exists(fullPath, (exists: boolean): void => {
       expect(exists).to.equal(true);
       callback();
