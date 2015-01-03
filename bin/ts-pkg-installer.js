@@ -5,6 +5,7 @@
 ///<reference path="../typings/glob/glob.d.ts"/>
 ///<reference path="../typings/mkdirp/mkdirp.d.ts"/>
 ///<reference path="../typings/node/node.d.ts"/>
+///<reference path="./util.ts"/>
 'use strict';
 var assert = require('assert');
 var BluePromise = require('bluebird');
@@ -13,6 +14,7 @@ var debug = require('debug');
 var fs = require('fs');
 var mkdirp = require('mkdirp');
 var path = require('path');
+var util = require('./util');
 BluePromise.longStackTraces();
 // Command-line options, describing the structure of options in commander.
 var Options = (function () {
@@ -40,6 +42,8 @@ var Config = (function () {
         this.localTypingsDir = config.localTypingsDir || 'typings';
         this.exportedTypingsDir = config.exportedTypingsDir || path.join('..', '..', 'typings');
         this.typingsSubdir = config.typingsSubdir;
+        this.localTsdConfig = config.localTsdConfig || 'tsd.json';
+        this.exportedTsdConfig = config.exportedTsdConfig || path.join('..', '..', 'tsd-tspi.json');
     }
     return Config;
 })();
@@ -98,7 +102,9 @@ var TypeScriptPackageInstaller = (function () {
         }).then(function () {
             return _this.copyExportedModules();
         }).then(function () {
-            return _this.haulTypings();
+            return _this.readLocalTsdConfigFile();
+        }).then(function () {
+            return _this.maybeHaulTypings();
         });
     };
     // Parse the options at initialization.
@@ -280,11 +286,67 @@ var TypeScriptPackageInstaller = (function () {
             });
         });
     };
+    // Read the local TSD configuration.
+    TypeScriptPackageInstaller.prototype.readLocalTsdConfigFile = function () {
+        var _this = this;
+        assert(this.config && this.config.localTsdConfig);
+        return this.readTsdConfigFile(this.config.localTsdConfig).then(function (config) {
+            _this.localTsdConfig = config;
+        });
+    };
+    // Read the exported TSD configuration (if any).
+    TypeScriptPackageInstaller.prototype.readExportedTsdConfigFile = function () {
+        var _this = this;
+        assert(this.config && this.config.exportedTsdConfig);
+        return this.readTsdConfigFile(this.config.exportedTsdConfig).then(function (config) {
+            _this.exportedTsdConfig = config;
+        });
+    };
+    // Read the specified TSD configuration.  Return null if file does not exist.
+    TypeScriptPackageInstaller.prototype.readTsdConfigFile = function (path) {
+        dlog('Reading TSD config file: ' + path);
+        return fsReadFileAsync(path, 'utf8').then(function (contents) {
+            dlog('Read TSD config file: ' + path);
+            return new util.TsdConfig(JSON.parse(contents));
+        }).catch(function (error) {
+            // It's OK if the file isn't there.
+            dlog('Ignoring error reading TSD config file: ' + path + ': ' + error.toString());
+            return null;
+        });
+    };
+    // Incorporate typings from our own dependencies (if any).
+    TypeScriptPackageInstaller.prototype.maybeHaulTypings = function () {
+        var _this = this;
+        // If we have no typings, we don't have anything to do.
+        if (!this.localTsdConfig) {
+            dlog('No TSD typings to haul');
+            return BluePromise.resolve();
+        }
+        else {
+            return this.readExportedTsdConfigFile().then(function () {
+                _this.haulTypings();
+            });
+        }
+    };
     // Incorporate typings from our own dependencies.
     TypeScriptPackageInstaller.prototype.haulTypings = function () {
-        assert(this.config);
-        // TODO
-        return BluePromise.resolve();
+        var _this = this;
+        assert(this.localTsdConfig);
+        // If we have no existing exported typings, we can trivially export ours.
+        if (!this.exportedTsdConfig) {
+            dlog('No existing exported TSD typings');
+            this.exportedTsdConfig = this.localTsdConfig;
+        }
+        else {
+            dlog('Combining with existing exported TSD typings');
+            this.exportedTsdConfig.incorporate(this.localTsdConfig);
+        }
+        // Write the resulting file.
+        var contents = JSON.stringify(this.exportedTsdConfig, null, 2) + '\n';
+        dlog('Combined TSD typings:\n' + contents);
+        return this.maybeDo(function () {
+            return fsWriteFileAsync(_this.config.exportedTsdConfig, contents);
+        });
     };
     // Allow conditional execution based on dry run mode.
     TypeScriptPackageInstaller.prototype.maybeDo = function (action) {

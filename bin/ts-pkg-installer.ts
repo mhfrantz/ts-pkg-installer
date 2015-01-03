@@ -6,6 +6,8 @@
 ///<reference path="../typings/mkdirp/mkdirp.d.ts"/>
 ///<reference path="../typings/node/node.d.ts"/>
 
+///<reference path="./util.ts"/>
+
 'use strict';
 
 import assert = require('assert');
@@ -16,6 +18,8 @@ import fs = require('fs');
 import glob = require('glob');
 import mkdirp = require('mkdirp');
 import path = require('path');
+
+import util = require('./util');
 
 BluePromise.longStackTraces();
 
@@ -67,12 +71,20 @@ class Config {
   // package name.
   typingsSubdir: string;
 
+  // TSD configuration file in the current package.  Defaults to 'tsd.json'.
+  localTsdConfig: string;
+
+  // TSD configuration file to export.  Defaults to '../../tsd-tspi.json'.
+  exportedTsdConfig: string;
+
   constructor(config: any = {}) {
     this.packageConfig = config.packageConfig || 'package.json';
     this.mainDeclaration = config.mainDeclaration;
     this.localTypingsDir = config.localTypingsDir || 'typings';
     this.exportedTypingsDir = config.exportedTypingsDir || path.join('..', '..', 'typings');
     this.typingsSubdir = config.typingsSubdir;
+    this.localTsdConfig = config.localTsdConfig || 'tsd.json';
+    this.exportedTsdConfig = config.exportedTsdConfig || path.join('..', '..', 'tsd-tspi.json');
   }
 }
 
@@ -143,6 +155,8 @@ class TypeScriptPackageInstaller {
   private config: Config;
   private packageConfig: PackageConfig;
   private wrappedMainDeclaration: string;
+  private localTsdConfig: util.TsdConfig;
+  private exportedTsdConfig: util.TsdConfig;
 
   // Directory containing the wrapped main declaration file that we export.
   private exportedTypingsSubdir: string;
@@ -161,7 +175,8 @@ class TypeScriptPackageInstaller {
       .then(() => { return this.determineExportedTypingsSubdir(); })
       .then(() => { return this.wrapMainDeclaration(); })
       .then(() => { return this.copyExportedModules(); })
-      .then(() => { return this.haulTypings(); });
+      .then(() => { return this.readLocalTsdConfigFile(); })
+      .then(() => { return this.maybeHaulTypings(); });
   }
 
   // Parse the options at initialization.
@@ -374,11 +389,71 @@ class TypeScriptPackageInstaller {
       });
   }
 
+  // Read the local TSD configuration.
+  private readLocalTsdConfigFile(): BluePromise<void> {
+    assert(this.config && this.config.localTsdConfig);
+    return this.readTsdConfigFile(this.config.localTsdConfig)
+      .then((config: util.TsdConfig): void => {
+        this.localTsdConfig = config;
+      });
+  }
+
+  // Read the exported TSD configuration (if any).
+  private readExportedTsdConfigFile(): BluePromise<void> {
+    assert(this.config && this.config.exportedTsdConfig);
+    return this.readTsdConfigFile(this.config.exportedTsdConfig)
+      .then((config: util.TsdConfig): void => {
+        this.exportedTsdConfig = config;
+      });
+  }
+
+  // Read the specified TSD configuration.  Return null if file does not exist.
+  private readTsdConfigFile(path: string): BluePromise<util.TsdConfig> {
+    dlog('Reading TSD config file: ' + path);
+    return fsReadFileAsync(path, 'utf8')
+      .then((contents: string): util.TsdConfig => {
+        dlog('Read TSD config file: ' + path);
+        return new util.TsdConfig(JSON.parse(contents));
+      })
+      .catch((error: any): util.TsdConfig => {
+        // It's OK if the file isn't there.
+        dlog('Ignoring error reading TSD config file: ' + path + ': ' + error.toString());
+        return <util.TsdConfig> null;
+      });
+  }
+
+  // Incorporate typings from our own dependencies (if any).
+  private maybeHaulTypings(): BluePromise<void> {
+    // If we have no typings, we don't have anything to do.
+    if (!this.localTsdConfig) {
+      dlog('No TSD typings to haul');
+      return BluePromise.resolve();
+    } else {
+      return this.readExportedTsdConfigFile()
+        .then((): void => {
+          this.haulTypings();
+        });
+    }
+  }
+
   // Incorporate typings from our own dependencies.
   private haulTypings(): BluePromise<void> {
-    assert(this.config);
-    // TODO
-    return BluePromise.resolve();
+    assert(this.localTsdConfig);
+    // If we have no existing exported typings, we can trivially export ours.
+    if (!this.exportedTsdConfig) {
+      dlog('No existing exported TSD typings');
+      this.exportedTsdConfig = this.localTsdConfig;
+    } else {
+      dlog('Combining with existing exported TSD typings');
+      this.exportedTsdConfig.incorporate(this.localTsdConfig);
+    }
+
+    // Write the resulting file.
+    var contents: string = JSON.stringify(this.exportedTsdConfig, null, 2) + '\n';
+    dlog('Combined TSD typings:\n' + contents);
+    return this.maybeDo((): BluePromise<void> => {
+      return fsWriteFileAsync(this.config.exportedTsdConfig, contents);
+    });
   }
 
   // Allow conditional execution based on dry run mode.

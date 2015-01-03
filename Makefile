@@ -35,10 +35,10 @@ documentation :
 test: unittest cucumber
 
 unittest: lint compile
-	node_modules/.bin/mocha --timeout 5s --reporter=spec --ui tdd
+	./node_modules/.bin/mocha --timeout 5s --reporter=spec --ui tdd
 
 cucumber: lint compile
-	node_modules/.bin/cucumber-js --tags '~@todo'
+	./node_modules/.bin/cucumber-js --tags '~@todo'
 
 TS_SRC=$(filter-out %.d.ts,$(wildcard bin/*.ts test/*.ts test/data/*/*.ts features/step_definitions/*.ts))
 TS_OBJ=$(patsubst %.ts,%.js,$(TS_SRC))
@@ -50,3 +50,9 @@ compile: $(TS_OBJ)
 %.js: %.ts
 	$(TSC) $(TSC_OPTS) $<
 	stat $@ > /dev/null
+
+# Explicit dependencies for files that are referenced
+
+bin/ts-pkg-installer.js: bin/util.js
+
+test/test.js: bin/util.js

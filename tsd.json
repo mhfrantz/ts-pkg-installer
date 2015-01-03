@@ -37,6 +37,9 @@
     },
     "ncp/ncp.d.ts": {
       "commit": "9872b853d6facd11ab4eba733b2408e249d85082"
+    },
+    "lodash/lodash.d.ts": {
+      "commit": "ec6e0ae9525a165ca94d751932dd387078800c1e"
     }
   }
 }

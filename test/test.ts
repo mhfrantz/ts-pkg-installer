@@ -1,4 +1,5 @@
 // test.ts
+/// <reference path="../bin/util.d.ts"/>
 /// <reference path="../typings/chai/chai.d.ts"/>
 /// <reference path="../typings/debug/debug.d.ts"/>
 /// <reference path="../typings/mkdirp/mkdirp.d.ts"/>
@@ -15,6 +16,8 @@ import mkdirp = require('mkdirp');
 import ncp = require('ncp');
 import path = require('path');
 import rimraf = require('rimraf');
+
+import util = require('../bin/util');
 
 // ## ts-pkg-installer
 describe('ts-pkg-installer', () => {
@@ -106,6 +109,26 @@ describe('ts-pkg-installer', () => {
     });
   }
 
+  // Make sure there is no exported TSD config created.
+  function expectNoExportedTsdConfig(done: MochaDone): void {
+    var exportedTsdConfig: string = path.join(testOutputDir, 'tsd-tspi.json');
+    fs.exists(exportedTsdConfig, (exists: boolean): void => {
+      expect(exists).to.equal(false);
+      done();
+    });
+  }
+
+  // Make sure no files were created.
+  function expectNoOutput(done: MochaDone): void {
+    expectNoTypingsDir((error?: Error) => {
+      if (error) {
+        done(error);
+      } else {
+        expectNoExportedTsdConfig(done);
+      }
+    });
+  }
+
   // ### Basic CLI Features
   describe('Basic CLI Features', () => {
 
@@ -116,7 +139,7 @@ describe('ts-pkg-installer', () => {
         expect(stdout).to.contain('Usage: ts-pkg-installer');
 
         // We should exit before writing anything.
-        expectNoTypingsDir(done);
+        expectNoOutput(done);
       });
     });
 
@@ -127,7 +150,7 @@ describe('ts-pkg-installer', () => {
         expect(stdout).to.contain('Usage: ts-pkg-installer');
 
         // We should exit before writing anything.
-        expectNoTypingsDir(done);
+        expectNoOutput(done);
       });
     });
 
@@ -156,7 +179,7 @@ describe('ts-pkg-installer', () => {
         expect(stdout).to.equal('');
 
         // Dry run mode should prevent output.
-        expectNoTypingsDir(done);
+        expectNoOutput(done);
       });
     });
 
@@ -167,7 +190,7 @@ describe('ts-pkg-installer', () => {
         expect(stdout).to.equal('');
 
         // Dry run mode should prevent output.
-        expectNoTypingsDir(done);
+        expectNoOutput(done);
       });
     });
 
@@ -178,7 +201,7 @@ describe('ts-pkg-installer', () => {
 
     // All of these tests are "dry run" mode, or failures, so nothing should be written.
     afterEach((done: MochaDone) => {
-      expectNoTypingsDir(done);
+      expectNoOutput(done);
     });
 
     it('skips reading the config file when it does not exists', (done: MochaDone) => {
@@ -230,7 +253,7 @@ describe('ts-pkg-installer', () => {
 
     // All of these tests are "dry run" mode, or failures, so nothing should be written.
     afterEach((done: MochaDone) => {
-      expectNoTypingsDir(done);
+      expectNoOutput(done);
     });
 
     it('reads the default package config file when it exists', (done: MochaDone) => {
@@ -261,7 +284,7 @@ describe('ts-pkg-installer', () => {
 
     // All of these tests are "dry run" mode, or failures, so nothing should be written.
     afterEach((done: MochaDone) => {
-      expectNoTypingsDir(done);
+      expectNoOutput(done);
     });
 
     it('wraps a nominal main declaration', (done: MochaDone) => {
@@ -360,6 +383,106 @@ describe('ts-pkg-installer', () => {
                                              'typings.alt', 'alternate-exported-typings-dir', 'index.d.ts');
         var actualContents = fs.readFileSync(expectedPath, 'utf8');
         expect(actualContents).to.be.ok;
+
+        done();
+      });
+    });
+
+  });
+
+  // ### Local TSD Config File
+  describe('Local TSD Config File', () => {
+
+    // All of these tests are "dry run" mode, or failures, so nothing should be written.
+    afterEach((done: MochaDone) => {
+      expectNoOutput(done);
+    });
+
+    it('reads a nominal TSD config file', (done: MochaDone) => {
+      run(nominalTestData, ['-v', '-n'], function (error: Error, stdout: string, stderr: string): void {
+        expect(error).to.equal(null);
+        expect(stdout).to.equal('');
+        expect(stderr).to.contain('Read TSD config file: tsd.json');
+        done();
+      });
+    });
+
+    it('ignores a missing TSD config file', (done: MochaDone) => {
+      var testData = path.join(testDataRoot, 'default');
+      run(testData, ['-v', '-n'], function (error: Error, stdout: string, stderr: string): void {
+        expect(error).to.equal(null);
+        expect(stdout).to.equal('');
+        expect(stderr).to.contain('Ignoring error reading TSD config file: tsd.json');
+        done();
+      });
+    });
+
+  });
+
+  // ### Haul Typings
+  describe('Haul Typings', () => {
+
+    it('combines typings when previous exported typings exist', (done: MochaDone) => {
+      var originalPath: string = path.join(testOutputDir, 'tsd-tspi.json');
+      var originalConfig = new util.TsdConfig();
+
+      // Override the defaults to ensure that they are preserved.
+      originalConfig.version = 'some version';
+      originalConfig.repo = 'some repo';
+      originalConfig.ref = 'some ref';
+      originalConfig.path = 'some path';
+      originalConfig.bundle = 'some bundle';
+
+      // Add some existing packages.
+      originalConfig.addPackage(new util.TsdPackage('this is a commit'), 'bar/bar.d.ts');
+      originalConfig.addPackage(new util.TsdPackage('this is another commit'), 'baz/baz.d.ts');
+
+      // Write the file.
+      fs.writeFileSync(originalPath, JSON.stringify(originalConfig));
+
+      // Run the script with nominal input.
+      run(nominalTestData, ['-v'], function (error: Error, stdout: string, stderr: string): void {
+        expect(error).to.equal(null);
+        expect(stdout).to.equal('');
+        expect(stderr).to.contain('Combining with existing exported TSD typings');
+
+        // Read the original file
+        var sourcePath: string = 'tsd.json';
+        var sourceContents: string = fs.readFileSync(sourcePath, 'utf8');
+
+        // Read the output file.
+        var actualContents: string = fs.readFileSync(originalPath, 'utf8');
+        var actualConfig: util.TsdConfig = new util.TsdConfig(JSON.parse(actualContents));
+
+        // Compare against nominal tsd.json
+        expect(actualConfig.version).to.equal(originalConfig.version);
+        expect(actualConfig.repo).to.equal(originalConfig.repo);
+        expect(actualConfig.ref).to.equal(originalConfig.ref);
+        expect(actualConfig.path).to.equal(originalConfig.path);
+        expect(actualConfig.bundle).to.equal(originalConfig.bundle);
+
+        // Installed list should be the combined set.
+        expect(actualConfig.installed).to.have.keys(['foo/foo.d.ts', 'bar/bar.d.ts', 'baz/baz.d.ts']);
+
+        done();
+      });
+    });
+
+    it('trivially hauls typings when no previous exported typings exist', (done: MochaDone) => {
+      run(nominalTestData, ['-v'], function (error: Error, stdout: string, stderr: string): void {
+        expect(error).to.equal(null);
+        expect(stdout).to.equal('');
+        expect(stderr).to.contain('No existing exported TSD typings');
+
+        // Read the original file
+        var sourcePath: string = 'tsd.json';
+        var sourceContents: string = fs.readFileSync(sourcePath, 'utf8');
+
+        // Read the output file.
+        var actualPath: string = path.join(testOutputDir, 'tsd-tspi.json');
+        var actualContents: string = fs.readFileSync(actualPath, 'utf8');
+
+        expect(actualContents).to.equal(sourceContents);
 
         done();
       });
