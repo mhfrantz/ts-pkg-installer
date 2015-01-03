@@ -6,14 +6,14 @@ so that I can have modular source code.
 
   Scenario: NPM postinstall
     Given an NPM package "leaf1" written in TypeScript
-    And a single file "lib/export/leaf1.d.ts" describing the interface
-    When "leaf1" package in installed
+    And a single file "lib/index.d.ts" describing the interface
+    When "leaf1" package is installed
     And the TypeScript package installer runs as a postinstall hook
-    Then the file will be copied into the typings directory.
+    Then "leaf1/index.d.ts" will be copied into the typings directory.
 
   Scenario: Local development
     Given an NPM package under development
-    And a single file "lib/export/leaf1.d.ts" describing the interface
+    And a single file "lib/index.d.ts" describing the interface
     When I run tests with "make test"
     Then the tests will execute.
 
