@@ -293,7 +293,10 @@ describe('ts-pkg-installer', () => {
         expect(stderr).to.contain('ts-pkg-installer Wrapped main declaration file:\n' +
                                   '/// <reference path="../foo/foo.d.ts" />\n' +
                                   'declare module \'nominal\' {\n' +
-                                  'export declare function nominal(): void;\n' +
+                                  'export function nominal(): void;\n' +
+                                  'export class Exported {\n' +
+                                  '    export: boolean;\n' +
+                                  '}\n' +
                                   '}\n\n');
         expect(stdout).to.equal('');
         done();
@@ -306,7 +309,7 @@ describe('ts-pkg-installer', () => {
         expect(error).to.equal(null);
         expect(stderr).to.contain('ts-pkg-installer Wrapped main declaration file:\n' +
                                   'declare module \'none\' {\n' +
-                                  'export declare function index(): void;\n' +
+                                  'export function index(): void;\n' +
                                   '}\n\n');
         expect(stdout).to.equal('');
         done();
@@ -342,7 +345,7 @@ describe('ts-pkg-installer', () => {
         expect(error).to.equal(null);
         expect(stderr).to.contain('ts-pkg-installer Wrapped main declaration file:\n' +
                                   'declare module \'alternate-main\' {\n' +
-                                  'export declare function alternate(): void;\n' +
+                                  'export function alternate(): void;\n' +
                                   '}\n\n');
         expect(stdout).to.equal('');
         done();
@@ -363,7 +366,10 @@ describe('ts-pkg-installer', () => {
         var expectedContents: string = (
           '/// <reference path="../foo/foo.d.ts" />\n' +
             'declare module \'nominal\' {\n' +
-            'export declare function nominal(): void;\n' +
+            'export function nominal(): void;\n' +
+            'export class Exported {\n' +
+            '    export: boolean;\n' +
+            '}\n' +
             '}\n');
 
         var actualContents = fs.readFileSync(expectedPath, 'utf8');

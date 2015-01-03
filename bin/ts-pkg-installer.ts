@@ -310,6 +310,9 @@ class TypeScriptPackageInstaller {
     // Recognize reference path lines that form the header.
     var referencePathRegex = /^ *\/\/\/ *<reference *path *= *"(.*)" *\/> *$/;
 
+    // Recognize declarations in the body.
+    var declarationRegex = /^(export )?(declare )(.*)$/;
+
     // Maintain a state machine, separating the file into header and body sections.
     var state: DeclarationFileState = DeclarationFileState.Header;
 
@@ -331,6 +334,16 @@ class TypeScriptPackageInstaller {
           // Transitioning out of header state, so emit the module declaration.
           wrapped.push(this.moduleDeclaration());
           state = DeclarationFileState.Body;
+        }
+      }
+
+      if (state === DeclarationFileState.Body) {
+        // See if we have a declaration of some sort.
+        var declarationMatches: string[] = line.match(declarationRegex);
+        var isDeclaration: boolean = declarationMatches && true;
+        if (isDeclaration) {
+          // Remove the 'declare' keyword, as it is not allowed within a module declaration.
+          line = declarationMatches[1] + declarationMatches[3];
         }
       }
 
