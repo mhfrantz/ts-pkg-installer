@@ -77,7 +77,7 @@ class Config {
   // TSD configuration file in the current package.  Defaults to 'tsd.json'.
   localTsdConfig: string;
 
-  // TSD configuration file to export.  Defaults to '../tsd.json', which should land in the node_module directory of
+  // TSD configuration file to export.  Defaults to '../tsd.json', which should land in the node_modules directory of
   // the depending package.
   exportedTsdConfig: string;
 
