@@ -373,6 +373,20 @@ describe('ts-pkg-installer', () => {
       });
     });
 
+    it('wraps an "export =" declaration', (done: MochaDone) => {
+      var testData: string = path.join(testDataRoot, 'export-equals');
+      run(testData, ['-v', '-n'], function (error: Error, stdout: string, stderr: string): void {
+        expect(error).to.equal(null);
+        expect(stderr).to.contain('ts-pkg-installer Wrapped main declaration file:\n' +
+                                  'declare module \'export-equals\' {\n' +
+                                  'function main(): void;\n' +
+                                  'export = main;\n' +
+                                  '}\n\n');
+        expect(stdout).to.equal('');
+        done();
+      });
+    });
+
     it('fails if no main declaration file exists', (done: MochaDone) => {
       var testData: string = path.join(testDataRoot, 'js-main');
       run(testData, ['-n'], function (error: Error, stdout: string, stderr: string): void {

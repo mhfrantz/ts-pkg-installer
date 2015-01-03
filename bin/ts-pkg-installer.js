@@ -266,7 +266,7 @@ var TypeScriptPackageInstaller = (function () {
                 var isDeclaration = declarationMatches && true;
                 if (isDeclaration) {
                     // Remove the 'declare' keyword, as it is not allowed within a module declaration.
-                    line = declarationMatches[1] + declarationMatches[3];
+                    line = (declarationMatches[1] || '') + declarationMatches[3];
                 }
             }
             // Emit the line (but not blank lines).
