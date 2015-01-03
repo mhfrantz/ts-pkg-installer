@@ -488,6 +488,36 @@ describe('ts-pkg-installer', () => {
       });
     });
 
+    it('allows specifying an alternate local TSD config file', (done: MochaDone) => {
+      var testData = path.join(testDataRoot, 'alternate-local-tsd-config');
+      run(testData, ['-v'], function (error: Error, stdout: string, stderr: string): void {
+        expect(error).to.equal(null);
+
+        // Expect the output file to exist
+        var actualPath: string = path.join(testOutputDir, 'node_modules', 'tsd.json');
+        var actualContents: string = fs.readFileSync(actualPath, 'utf8');
+
+        expect(actualContents).to.be.ok;
+
+        done();
+      });
+    });
+
+    it('allows specifying an alternate exported TSD config file', (done: MochaDone) => {
+      var testData = path.join(testDataRoot, 'alternate-exported-tsd-config');
+      run(testData, ['-v'], function (error: Error, stdout: string, stderr: string): void {
+        expect(error).to.equal(null);
+
+        // Expect the output file to exist
+        var actualPath: string = path.join(testOutputDir, 'node_modules', 'alternate-tsd.json');
+        var actualContents: string = fs.readFileSync(actualPath, 'utf8');
+
+        expect(actualContents).to.be.ok;
+
+        done();
+      });
+    });
+
   });
 
 });
