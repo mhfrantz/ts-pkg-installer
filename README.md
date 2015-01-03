@@ -16,6 +16,12 @@ If you use the TSD tool (TypeScript DefinitelyTyped), then you may need this too
 If you have ever tried to reuse a TS module and had problems (namely, duplicate declarations) because some TSD
 declaration files are referenced multiple times in a set of modules, then you probably need this tool.
 
+## What about 'tsd link'?
+
+The TSD "link" command is an attempt to address the same problem.  TSD "link" does export the declaration files, but it
+does not reconcile multiple dependencies on the same TSD declaration file.  That is the use case that motivated TSPI's
+design.
+
 ## How does it work?
 
 The tool performs two related tasks:
