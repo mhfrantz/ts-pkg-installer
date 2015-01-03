@@ -25,6 +25,10 @@ interface ICallback {
   pending(): void;
 }
 
+interface IExecCallback {
+  (): void;
+}
+
 // ### IScenario
 // Interface of the scenario object from Cucumber.js
 interface IScenario {
@@ -52,7 +56,7 @@ function wrapper() {
   var cwdSave = process.cwd();
 
   // Function which runs a child process and captures the relevant data in the world object.
-  var execChild = function (world: IWorld, cwd: string, cmd: string, callback: ICallback) {
+  var execChild = function (world: IWorld, cwd: string, cmd: string, callback: IExecCallback) {
     world.child = childProcess.exec(cmd, {'cwd': cwd}, function (error: Error, stdout: Buffer, stderr: Buffer) {
       world.error = error;
       world.stdout = stdout.toString();
@@ -106,7 +110,6 @@ function wrapper() {
     var pkgConfig: string = path.join(pkg, 'package.json');
     fs.exists(pkgConfig, (exists: boolean): void => {
       expect(exists).to.equal(true);
-      // Write code here that turns the phrase above into concrete actions
       callback();
     });
   });
@@ -165,24 +168,38 @@ function wrapper() {
 
   this.Given(/^two NPM packages "([^"]*)" and "([^"]*)" written in TypeScript$/, function (pkg1: string, pkg2: string,
                                                                                            callback: ICallback) {
-    // Write code here that turns the phrase above into concrete actions
-    callback.pending();
+    // Make sure there is are packages with the specified name.
+    var pkg1Config: string = path.join(pkg1, 'package.json');
+    var pkg2Config: string = path.join(pkg2, 'package.json');
+    fs.exists(pkg1Config, (exists: boolean): void => {
+      expect(exists).to.equal(true);
+      fs.exists(pkg2Config, (exists: boolean): void => {
+        expect(exists).to.equal(true);
+        callback();
+      });
+    });
   });
 
   this.Given(/^each package depends on Node package described by "([^"]*)"$/, function (file: string,
                                                                                         callback: ICallback) {
-    // Write code here that turns the phrase above into concrete actions
-    callback.pending();
+    // TODO: explicitly check that the two packages depend on the specified package, if we want to be pedantic
+    callback();
   });
 
   this.When(/^both packages are installed$/, function (callback: ICallback) {
-    // Write code here that turns the phrase above into concrete actions
-    callback.pending();
+    var world = <IWorld> this;
+    dlog('Running make install');
+    execChild(world, 'spine', 'make install', callback);
   });
 
   this.Then(/^they will depend on a single copy of "([^"]*)"$/, function (file: string, callback: ICallback) {
-    // Write code here that turns the phrase above into concrete actions
-    callback.pending();
+    var world = <IWorld> this;
+    // Run the tests, which will verify that everything works.
+    dlog('Running make test');
+    execChild(world, 'spine', 'make test', (): void => {
+      expect(world.error).to.equal(null);
+      callback();
+    });
   });
 
 }
