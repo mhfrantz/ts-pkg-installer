@@ -146,18 +146,21 @@ function wrapper() {
   });
 
   this.Given(/^an NPM package "([^"].*)" under development$/, function (pkg: string, callback: ICallback) {
-    // Write code here that turns the phrase above into concrete actions
-    callback.pending();
+    var world = <IWorld> this;
+    world.pkgName = pkg;
+    execChild(world, world.pkgName, 'make install', callback);
   });
 
   this.When(/^I run tests with "([^"]*)"$/, function (command: string, callback: ICallback) {
-    // Write code here that turns the phrase above into concrete actions
-    callback.pending();
+    var world = <IWorld> this;
+    expect(world.error).to.equal(null);
+    execChild(world, world.pkgName, command, callback);
   });
 
   this.Then(/^the tests will execute\.$/, function (callback: ICallback) {
-    // Write code here that turns the phrase above into concrete actions
-    callback.pending();
+    var world = <IWorld> this;
+    expect(world.error).to.equal(null);
+    callback();
   });
 
   this.Given(/^two NPM packages "([^"]*)" and "([^"]*)" written in TypeScript$/, function (pkg1: string, pkg2: string,
