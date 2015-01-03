@@ -1,9 +1,9 @@
 .PHONY: install install-npm install-tsd lint test unittest cucumber compile
-.PHONY: clean clean-obj clean-tsd clean-npm
+.PHONY: clean clean-obj clean-tsd clean-npm clean-unittest clean-cucumber
 
 default: test
 
-clean: clean-obj clean-tsd clean-npm
+clean: clean-obj clean-tsd clean-npm clean-unittest clean-cucumber
 
 clean-tsd:
 	rm -rf typings
@@ -13,6 +13,12 @@ clean-npm:
 
 clean-obj:
 	rm -f $(TS_OBJ)
+
+clean-unittest:
+	rm -rf o
+
+clean-cucumber:
+	rm -rf o.features
 
 install:
 	$(MAKE) install-npm
