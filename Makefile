@@ -1,9 +1,12 @@
 .PHONY: install install-npm install-tsd lint test unittest cucumber compile
-.PHONY: clean clean-obj clean-tsd clean-npm clean-unittest clean-cucumber
+.PHONY: clean clean-doc clean-obj clean-tsd clean-npm clean-unittest clean-cucumber
 
 default: test
 
-clean: clean-obj clean-tsd clean-npm clean-unittest clean-cucumber
+clean: clean-doc clean-obj clean-tsd clean-npm clean-unittest clean-cucumber
+
+clean-doc:
+	rm -rf doc
 
 clean-tsd:
 	rm -rf typings
