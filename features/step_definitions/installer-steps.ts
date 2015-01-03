@@ -48,7 +48,7 @@ function wrapper() {
   var dlog = debug('ts-pkg-installer:steps');
   var expect = chai.expect;
   var testDataRepo = path.join(process.cwd(), 'test', 'data', 'repo');
-  var rootOutputDir = path.join(process.cwd(), 'features', 'o');
+  var rootOutputDir = path.join(process.cwd(), 'o.features', 'installer');
   var cwdSave = process.cwd();
 
   // Function which runs a child process and captures the relevant data in the world object.

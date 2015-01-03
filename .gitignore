@@ -36,3 +36,4 @@ typings/
 !test/data/*/*.d.ts
 
 o/
+o.features/
