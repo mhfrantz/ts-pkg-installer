@@ -92,7 +92,9 @@ function wrapper() {
 
   // Restore the original cwd after each scenario.
   this.After(function (callback: ICallback) {
+    dlog('Restoring CWD ' + cwdSave);
     process.chdir(cwdSave);
+    callback();
   });
 
   this.Given(/^an NPM package "([^"]*)" written in TypeScript$/, function (pkg: string, callback: ICallback) {
