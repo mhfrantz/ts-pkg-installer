@@ -528,12 +528,22 @@ describe('ts-pkg-installer', () => {
         // Read the original file
         var sourcePath: string = 'tsd.json';
         var sourceContents: string = fs.readFileSync(sourcePath, 'utf8');
+        var sourceConfig = new util.TsdConfig(JSON.parse(sourceContents));
 
         // Read the output file.
         var actualPath: string = path.join(testOutputDir, 'node_modules', 'tsd.json');
         var actualContents: string = fs.readFileSync(actualPath, 'utf8');
+        var actualConfig = new util.TsdConfig(JSON.parse(actualContents));
 
-        expect(actualContents).to.equal(sourceContents);
+        // Compare against original tsd.json.  Only the path should change
+        expect(actualConfig.version).to.equal(sourceConfig.version);
+        expect(actualConfig.repo).to.equal(sourceConfig.repo);
+        expect(actualConfig.ref).to.equal(sourceConfig.ref);
+        expect(actualConfig.bundle).to.equal(sourceConfig.bundle);
+        expect(actualConfig.installed).to.deep.equal(sourceConfig.installed);
+
+        // Path should point to the exported typings directory.
+        expect(actualConfig.path).to.equal(path.join('..', 'typings'));
 
         done();
       });

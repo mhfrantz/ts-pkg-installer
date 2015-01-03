@@ -483,7 +483,15 @@ class TypeScriptPackageInstaller {
     if (!this.exportedTsdConfig) {
       dlog('No existing exported TSD typings');
       this.exportedTsdConfig = this.localTsdConfig;
+
+      // We do have to change the path to point to the place where we are exporting the typings.
+      var tsdConfigDir: string = path.dirname(this.config.exportedTsdConfig);
+      var typingsPath: string = path.relative(tsdConfigDir, this.config.exportedTypingsDir);
+      dlog('Configured TSD typings path: ' + typingsPath);
+      this.exportedTsdConfig.path = typingsPath;
+
     } else {
+
       dlog('Combining with existing exported TSD typings');
       this.exportedTsdConfig.incorporate(this.localTsdConfig);
     }
