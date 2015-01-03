@@ -111,7 +111,7 @@ describe('ts-pkg-installer', () => {
 
   // Make sure there is no exported TSD config created.
   function expectNoExportedTsdConfig(done: MochaDone): void {
-    var exportedTsdConfig: string = path.join(testOutputDir, 'tsd-tspi.json');
+    var exportedTsdConfig: string = path.join(testOutputDir, 'node_modules', 'tsd.json');
     fs.exists(exportedTsdConfig, (exists: boolean): void => {
       expect(exists).to.equal(false);
       done();
@@ -423,7 +423,7 @@ describe('ts-pkg-installer', () => {
   describe('Haul Typings', () => {
 
     it('combines typings when previous exported typings exist', (done: MochaDone) => {
-      var originalPath: string = path.join(testOutputDir, 'tsd-tspi.json');
+      var originalPath: string = path.join(testOutputDir, 'node_modules', 'tsd.json');
       var originalConfig = new util.TsdConfig();
 
       // Override the defaults to ensure that they are preserved.
@@ -479,7 +479,7 @@ describe('ts-pkg-installer', () => {
         var sourceContents: string = fs.readFileSync(sourcePath, 'utf8');
 
         // Read the output file.
-        var actualPath: string = path.join(testOutputDir, 'tsd-tspi.json');
+        var actualPath: string = path.join(testOutputDir, 'node_modules', 'tsd.json');
         var actualContents: string = fs.readFileSync(actualPath, 'utf8');
 
         expect(actualContents).to.equal(sourceContents);

@@ -74,7 +74,8 @@ class Config {
   // TSD configuration file in the current package.  Defaults to 'tsd.json'.
   localTsdConfig: string;
 
-  // TSD configuration file to export.  Defaults to '../../tsd-tspi.json'.
+  // TSD configuration file to export.  Defaults to '../tsd.json', which should land in the node_module directory of
+  // the depending package.
   exportedTsdConfig: string;
 
   constructor(config: any = {}) {
@@ -84,7 +85,7 @@ class Config {
     this.exportedTypingsDir = config.exportedTypingsDir || path.join('..', '..', 'typings');
     this.typingsSubdir = config.typingsSubdir;
     this.localTsdConfig = config.localTsdConfig || 'tsd.json';
-    this.exportedTsdConfig = config.exportedTsdConfig || path.join('..', '..', 'tsd-tspi.json');
+    this.exportedTsdConfig = config.exportedTsdConfig || path.join('..', 'tsd.json');
   }
 }
 

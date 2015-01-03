@@ -43,7 +43,7 @@ var Config = (function () {
         this.exportedTypingsDir = config.exportedTypingsDir || path.join('..', '..', 'typings');
         this.typingsSubdir = config.typingsSubdir;
         this.localTsdConfig = config.localTsdConfig || 'tsd.json';
-        this.exportedTsdConfig = config.exportedTsdConfig || path.join('..', '..', 'tsd-tspi.json');
+        this.exportedTsdConfig = config.exportedTsdConfig || path.join('..', 'tsd.json');
     }
     return Config;
 })();
