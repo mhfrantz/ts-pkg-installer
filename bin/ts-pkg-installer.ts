@@ -117,7 +117,7 @@ function normalizedFsExists(file: string, callback: (error: Error, result: boole
   });
 }
 
-// Next, we wrap the normalized API with Q to make it return a promise.
+// Next, we wrap the normalized API with bluebird to make it return a promise.
 interface IFsExistsAsync {
   (file: string): BluePromise<boolean>;
 }
