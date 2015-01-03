@@ -53,6 +53,9 @@ var dlog: debug.Debugger = debug(debugNamespace);
 // Configuration data from tspi.json
 class Config {
 
+  // Force script to run even if it does not think it should run.
+  force: boolean;
+
   // Path to the NPM package.json config file.
   packageConfig: string;
 
@@ -79,6 +82,7 @@ class Config {
   exportedTsdConfig: string;
 
   constructor(config: any = {}) {
+    this.force = config.force || false;
     this.packageConfig = config.packageConfig || 'package.json';
     this.mainDeclaration = config.mainDeclaration;
     this.localTypingsDir = config.localTypingsDir || 'typings';
@@ -172,12 +176,18 @@ class TypeScriptPackageInstaller {
     dlog('main');
 
     return this.readConfigFile()
-      .then(() => { return this.readPackageConfigFile(); })
-      .then(() => { return this.determineExportedTypingsSubdir(); })
-      .then(() => { return this.wrapMainDeclaration(); })
-      .then(() => { return this.copyExportedModules(); })
-      .then(() => { return this.readLocalTsdConfigFile(); })
-      .then(() => { return this.maybeHaulTypings(); });
+      .then(() => {
+        if (this.shouldRun()) {
+          return this.readPackageConfigFile()
+            .then(() => { return this.determineExportedTypingsSubdir(); })
+            .then(() => { return this.wrapMainDeclaration(); })
+            .then(() => { return this.copyExportedModules(); })
+            .then(() => { return this.readLocalTsdConfigFile(); })
+            .then(() => { return this.maybeHaulTypings(); });
+        } else {
+          return BluePromise.resolve();
+        }
+      });
   }
 
   // Parse the options at initialization.
@@ -229,6 +239,22 @@ class TypeScriptPackageInstaller {
         }
         this.config = new Config(JSON.parse(contents));
       });
+  }
+
+  // Determine if we should run based on whether it looks like we're inside a node_modules directory.  This
+  // distinguishes between being called in two NPM postinstall cases:
+  // - after our package is installed inside a depending package
+  // - after our own dependencies are installed
+  private shouldRun(): boolean {
+    var parentDir: string = path.basename(path.dirname(process.cwd()));
+    var should: boolean = this.config.force || parentDir === 'node_modules';
+    if (this.config.force) {
+      dlog('Forced to run');
+    }
+    if (!should) {
+      dlog('Should not run');
+    }
+    return should;
   }
 
   // Read the package configuration.

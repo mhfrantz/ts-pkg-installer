@@ -37,6 +37,7 @@ var dlog = debug(debugNamespace);
 var Config = (function () {
     function Config(config) {
         if (config === void 0) { config = {}; }
+        this.force = config.force || false;
         this.packageConfig = config.packageConfig || 'package.json';
         this.mainDeclaration = config.mainDeclaration;
         this.localTypingsDir = config.localTypingsDir || 'typings';
@@ -94,17 +95,22 @@ var TypeScriptPackageInstaller = (function () {
         var _this = this;
         dlog('main');
         return this.readConfigFile().then(function () {
-            return _this.readPackageConfigFile();
-        }).then(function () {
-            return _this.determineExportedTypingsSubdir();
-        }).then(function () {
-            return _this.wrapMainDeclaration();
-        }).then(function () {
-            return _this.copyExportedModules();
-        }).then(function () {
-            return _this.readLocalTsdConfigFile();
-        }).then(function () {
-            return _this.maybeHaulTypings();
+            if (_this.shouldRun()) {
+                return _this.readPackageConfigFile().then(function () {
+                    return _this.determineExportedTypingsSubdir();
+                }).then(function () {
+                    return _this.wrapMainDeclaration();
+                }).then(function () {
+                    return _this.copyExportedModules();
+                }).then(function () {
+                    return _this.readLocalTsdConfigFile();
+                }).then(function () {
+                    return _this.maybeHaulTypings();
+                });
+            }
+            else {
+                return BluePromise.resolve();
+            }
         });
     };
     // Parse the options at initialization.
@@ -151,6 +157,21 @@ var TypeScriptPackageInstaller = (function () {
             }
             _this.config = new Config(JSON.parse(contents));
         });
+    };
+    // Determine if we should run based on whether it looks like we're inside a node_modules directory.  This
+    // distinguishes between being called in two NPM postinstall cases:
+    // - after our package is installed inside a depending package
+    // - after our own dependencies are installed
+    TypeScriptPackageInstaller.prototype.shouldRun = function () {
+        var parentDir = path.basename(path.dirname(process.cwd()));
+        var should = this.config.force || parentDir === 'node_modules';
+        if (this.config.force) {
+            dlog('Forced to run');
+        }
+        if (!should) {
+            dlog('Should not run');
+        }
+        return should;
     };
     // Read the package configuration.
     TypeScriptPackageInstaller.prototype.readPackageConfigFile = function () {

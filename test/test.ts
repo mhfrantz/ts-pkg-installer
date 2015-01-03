@@ -248,6 +248,51 @@ describe('ts-pkg-installer', () => {
 
   });
 
+  // ### Should Run
+  describe('Should Run', () => {
+
+    var otherDir: string;
+
+    // Create a parallel directory that is NOT under node_modules
+    beforeEach((done: MochaDone) => {
+      otherDir = path.join(testOutputDir, 'other', 'dir');
+
+      mkdirp(otherDir, (error: Error) => {
+
+        // Change into the package directory to catch any output.
+        if (!error) {
+          process.chdir(otherDir);
+        }
+
+        done(error);
+      });
+    });
+
+    it('does not run if we are not in a node_modules directory', (done: MochaDone) => {
+      run(nominalTestData, ['-v'], function (error: Error, stdout: string, stderr: string): void {
+        expect(error).to.equal(null);
+        expect(stderr).to.contain('ts-pkg-installer Should not run');
+        expect(stdout).to.equal('');
+
+        // Make sure we didn't really run.
+        expectNoOutput(done);
+      });
+    });
+
+    it('runs when force flag is configured', (done: MochaDone) => {
+      // Use test data that has the force flag set.
+      var testData = path.join(testDataRoot, 'force');
+      run(testData, ['-v', '-n'], function (error: Error, stdout: string, stderr: string): void {
+        expect(error).to.equal(null);
+        expect(stderr).to.contain('ts-pkg-installer Forced to run');
+        expect(stderr).to.contain('ts-pkg-installer Wrapped main declaration file');
+        expect(stdout).to.equal('');
+        done();
+      });
+    });
+
+  });
+
   // ### Package Config File
   describe('Package Config File', () => {
 
