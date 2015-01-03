@@ -12,7 +12,7 @@ so that I can have modular source code.
     Then "leaf1/index.d.ts" will be copied into the typings directory.
 
   Scenario: Local development
-    Given an NPM package under development
+    Given an NPM package "leaf1" under development
     And a single file "lib/index.d.ts" describing the interface
     When I run tests with "make test"
     Then the tests will execute.

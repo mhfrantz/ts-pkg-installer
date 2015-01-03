@@ -32,7 +32,7 @@ function wrapper() {
     callback.pending();
   });
 
-  this.Given(/^an NPM package under development$/, function (callback: ICallback) {
+  this.Given(/^an NPM package "([^"].*)" under development$/, function (pkg: string, callback: ICallback) {
     // Write code here that turns the phrase above into concrete actions
     callback.pending();
   });
