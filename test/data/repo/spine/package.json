@@ -4,8 +4,8 @@
   "description": "Spine module",
   "main": "lib/index.js",
   "dependencies": {
-    "leaf1": "../leaf1",
-    "leaf2": "../leaf2"
+    "leaf1": "file:../leaf1",
+    "leaf2": "file:../leaf2"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
