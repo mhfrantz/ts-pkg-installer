@@ -1,0 +1,23 @@
+{
+  "name": "leaf2",
+  "version": "1.0.0",
+  "description": "Leaf 2 module",
+  "main": "lib/index.js",
+  "scripts": {
+    "postinstall": "ts-pkg-installer",
+    "test": "make"
+  },
+  "author": "Matt Frantz <mfrantz@redsealnetworks.com>",
+  "license": "ISC",
+  "devDependencies": {
+    "chai": "^1.10.0",
+    "groc": "^0.8.0",
+    "mocha": "^2.1.0",
+    "tsd": "^0.6.0-beta.5",
+    "tslint": "^1.0.1",
+    "typescript": "^1.3.0"
+  },
+  "dependencies": {
+    "ts-pkg-installer": "file:../../../../."
+  }
+}

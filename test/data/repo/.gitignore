@@ -30,12 +30,5 @@ typings/
 *.js
 *.js.map
 *.d.ts
-!bin/*.js
-!bin/util.d.ts
-!test/data/*/*.js
-!test/data/*/*.d.ts
-
-o/
-o.features/
 
 doc/

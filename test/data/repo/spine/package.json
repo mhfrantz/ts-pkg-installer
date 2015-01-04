@@ -1,0 +1,22 @@
+{
+  "name": "spine",
+  "version": "1.0.0",
+  "description": "Spine module",
+  "main": "lib/index.js",
+  "dependencies": {
+    "leaf1": "file:../leaf1",
+    "leaf2": "file:../leaf2"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Matt Frantz <mfrantz@redsealnetworks.com>",
+  "license": "ISC",
+  "devDependencies": {
+    "chai": "^1.10.0",
+    "mocha": "^2.1.0",
+    "tsd": "^0.6.0-beta.5",
+    "tslint": "^1.0.1",
+    "typescript": "^1.3.0"
+  }
+}
