@@ -7,6 +7,7 @@
 ///<reference path="../typings/node/node.d.ts"/>
 ///<reference path="./util.ts"/>
 'use strict';
+require('source-map-support').install();
 var assert = require('assert');
 var BluePromise = require('bluebird');
 var commander = require('commander');
@@ -238,6 +239,9 @@ var TypeScriptPackageInstaller = (function () {
         var _this = this;
         // Process each line in the main declaration file.
         var lines = contents.split('\n');
+        // Recognize comments that may appear in the header or body.
+        var commentRegex = /^ *\/\/.*$/;
+        var blankRegex = /^ *$/;
         // Recognize reference path lines that form the header.
         var referencePathRegex = /^ *\/\/\/ *<reference *path *= *"(.*)" *\/> *$/;
         // Recognize declarations in the body.
@@ -246,7 +250,7 @@ var TypeScriptPackageInstaller = (function () {
         var state = 0 /* Header */;
         var reducer = function (wrapped, line) {
             if (state === 0 /* Header */) {
-                // See if we have a reference path.
+                // See if we have a reference path (which is a form of comment).
                 var referencePathMatches = line.match(referencePathRegex);
                 var isReferencePath = referencePathMatches && true;
                 if (isReferencePath) {
@@ -256,9 +260,15 @@ var TypeScriptPackageInstaller = (function () {
                     line = _this.rewriteReferencePath(referencePath, referencePathDir);
                 }
                 else {
-                    // Transitioning out of header state, so emit the module declaration.
-                    wrapped.push(_this.moduleDeclaration());
-                    state = 1 /* Body */;
+                    // See if we have a comment or blank line.
+                    var isComment = line.match(commentRegex) && true;
+                    var isBlank = !isComment && line.match(blankRegex) && true;
+                    // Stay in header state if we have a comment or blank line.
+                    if (!(isComment || isBlank)) {
+                        // Transitioning out of header state, so emit the module declaration.
+                        wrapped.push(_this.moduleDeclaration());
+                        state = 1 /* Body */;
+                    }
                 }
             }
             if (state === 1 /* Body */) {
@@ -277,6 +287,11 @@ var TypeScriptPackageInstaller = (function () {
             return wrapped;
         };
         return BluePromise.reduce(lines, reducer, []).then(function (wrapped) {
+            // If we're still in the header (i.e. we had no body lines), then emit the module declaration now.
+            if (state === 0 /* Header */) {
+                wrapped.push(_this.moduleDeclaration());
+                state = 1 /* Body */;
+            }
             // End by closing the module declaration
             wrapped.push('}');
             wrapped.push('');

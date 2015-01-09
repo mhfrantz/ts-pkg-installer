@@ -424,6 +424,24 @@ describe('ts-pkg-installer', () => {
       });
     });
 
+    it('allows header comments', (done: MochaDone) => {
+      // This is bug #85813044
+      var testData: string = path.join(testDataRoot, 'header-comment');
+      run(testData, ['-v', '-n'], function (error: Error, stdout: string, stderr: string): void {
+        expect(error).to.equal(null);
+        expect(stderr).to.contain('ts-pkg-installer Wrapped main declaration file:\n' +
+                                  '// header comment\n' +
+                                  '/// <reference path="../foo/foo.d.ts" />\n' +
+                                  '// another comment\n' +
+                                  '/// <reference path="../bar/bar.d.ts" />\n' +
+                                  'declare module \'header-comment\' {\n' +
+                                  'export function main(): void;\n' +
+                                  '}\n\n');
+        expect(stdout).to.equal('');
+        done();
+      });
+    });
+
   });
 
   // ### Copy Exported Modules

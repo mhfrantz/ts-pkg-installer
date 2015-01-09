@@ -10,6 +10,9 @@
 
 'use strict';
 
+declare function require(name: string);
+require('source-map-support').install();
+
 import assert = require('assert');
 import BluePromise = require('bluebird');
 import commander = require('commander');
@@ -337,6 +340,10 @@ class TypeScriptPackageInstaller {
     // Process each line in the main declaration file.
     var lines: string[] = contents.split('\n');
 
+    // Recognize comments that may appear in the header or body.
+    var commentRegex = /^ *\/\/.*$/;
+    var blankRegex = /^ *$/;
+
     // Recognize reference path lines that form the header.
     var referencePathRegex = /^ *\/\/\/ *<reference *path *= *"(.*)" *\/> *$/;
 
@@ -349,7 +356,7 @@ class TypeScriptPackageInstaller {
     var reducer = (wrapped: string[], line: string): string[] => {
 
       if (state === DeclarationFileState.Header) {
-        // See if we have a reference path.
+        // See if we have a reference path (which is a form of comment).
         var referencePathMatches: string[] = line.match(referencePathRegex);
         var isReferencePath: boolean = referencePathMatches && true;
         if (isReferencePath) {
@@ -360,10 +367,16 @@ class TypeScriptPackageInstaller {
           line = this.rewriteReferencePath(referencePath, referencePathDir);
 
         } else {
+          // See if we have a comment or blank line.
+          var isComment: boolean = line.match(commentRegex) && true;
+          var isBlank: boolean = !isComment && line.match(blankRegex) && true;
 
-          // Transitioning out of header state, so emit the module declaration.
-          wrapped.push(this.moduleDeclaration());
-          state = DeclarationFileState.Body;
+          // Stay in header state if we have a comment or blank line.
+          if (! (isComment || isBlank)) {
+            // Transitioning out of header state, so emit the module declaration.
+            wrapped.push(this.moduleDeclaration());
+            state = DeclarationFileState.Body;
+          }
         }
       }
 
@@ -386,6 +399,13 @@ class TypeScriptPackageInstaller {
 
     return BluePromise.reduce(lines, reducer, [])
       .then((wrapped: string[]): string => {
+
+        // If we're still in the header (i.e. we had no body lines), then emit the module declaration now.
+        if (state === DeclarationFileState.Header) {
+          wrapped.push(this.moduleDeclaration());
+          state = DeclarationFileState.Body;
+        }
+
         // End by closing the module declaration
         wrapped.push('}');
         wrapped.push('');
