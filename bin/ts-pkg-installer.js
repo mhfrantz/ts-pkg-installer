@@ -40,6 +40,7 @@ var Config = (function () {
         this.force = config.force || false;
         this.packageConfig = config.packageConfig || 'package.json';
         this.mainDeclaration = config.mainDeclaration;
+        this.moduleName = config.moduleName;
         this.localTypingsDir = config.localTypingsDir || 'typings';
         this.exportedTypingsDir = config.exportedTypingsDir || path.join('..', '..', 'typings');
         this.typingsSubdir = config.typingsSubdir;
@@ -295,8 +296,10 @@ var TypeScriptPackageInstaller = (function () {
     };
     // Return the TypeScript module declaration statement for this package.
     TypeScriptPackageInstaller.prototype.moduleDeclaration = function () {
-        assert(this.packageConfig && this.packageConfig.name);
-        return 'declare module \'' + this.packageConfig.name + '\' {';
+        assert(this.packageConfig);
+        // Use the configured module name, defaulting to the package name.
+        var moduleName = this.config.moduleName || this.packageConfig.name;
+        return 'declare module \'' + moduleName + '\' {';
     };
     // Copy exported modules into typings
     TypeScriptPackageInstaller.prototype.copyExportedModules = function () {

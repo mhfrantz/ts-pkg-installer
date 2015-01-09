@@ -63,6 +63,9 @@ class Config {
   // JS file, as declared in package config.
   mainDeclaration: string;
 
+  // Name of the module as specified in the wrapped declaration file.  By default, this is the name of the NPM package.
+  moduleName: string;
+
   // Typings directory in which our own TSD writes.  Default to 'typings'.
   localTypingsDir: string;
 
@@ -85,6 +88,7 @@ class Config {
     this.force = config.force || false;
     this.packageConfig = config.packageConfig || 'package.json';
     this.mainDeclaration = config.mainDeclaration;
+    this.moduleName = config.moduleName;
     this.localTypingsDir = config.localTypingsDir || 'typings';
     this.exportedTypingsDir = config.exportedTypingsDir || path.join('..', '..', 'typings');
     this.typingsSubdir = config.typingsSubdir;
@@ -405,8 +409,10 @@ class TypeScriptPackageInstaller {
 
   // Return the TypeScript module declaration statement for this package.
   private moduleDeclaration(): string {
-    assert(this.packageConfig && this.packageConfig.name);
-    return 'declare module \'' + this.packageConfig.name + '\' {';
+    assert(this.packageConfig);
+    // Use the configured module name, defaulting to the package name.
+    var moduleName: string = this.config.moduleName || this.packageConfig.name;
+    return 'declare module \'' + moduleName + '\' {';
   }
 
   // Copy exported modules into typings

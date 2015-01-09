@@ -411,6 +411,19 @@ describe('ts-pkg-installer', () => {
       });
     });
 
+    it('allows specifying alternate module name', (done: MochaDone) => {
+      var testData: string = path.join(testDataRoot, 'alternate-module-name');
+      run(testData, ['-v', '-n'], function (error: Error, stdout: string, stderr: string): void {
+        expect(error).to.equal(null);
+        expect(stderr).to.contain('ts-pkg-installer Wrapped main declaration file:\n' +
+                                  'declare module \'some-other-name\' {\n' +
+                                  'export function main(): void;\n' +
+                                  '}\n\n');
+        expect(stdout).to.equal('');
+        done();
+      });
+    });
+
   });
 
   // ### Copy Exported Modules
