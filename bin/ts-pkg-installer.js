@@ -7,6 +7,7 @@
 ///<reference path="../typings/node/node.d.ts"/>
 ///<reference path="./util.ts"/>
 'use strict';
+require('source-map-support').install();
 var assert = require('assert');
 var BluePromise = require('bluebird');
 var commander = require('commander');

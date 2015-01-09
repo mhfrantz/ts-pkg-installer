@@ -10,6 +10,9 @@
 
 'use strict';
 
+declare function require(name: string);
+require('source-map-support').install();
+
 import assert = require('assert');
 import BluePromise = require('bluebird');
 import commander = require('commander');
