@@ -35,8 +35,8 @@ TSD=./node_modules/.bin/tsd
 install-tsd:
 	$(TSD) reinstall
 
+# We run lint as part of compile, so this is a dummy target
 lint:
-	ls $(TS_SRC) | xargs -n1 node_modules/.bin/tslint --config tslint.json --file
 
 documentation :
 	node_modules/.bin/groc --except "**/node_modules/**" --except "**/typings/**" "**/*.ts" README.md
@@ -54,9 +54,12 @@ TS_OBJ=$(patsubst %.ts,%.js,$(TS_SRC))
 TSC=./node_modules/.bin/tsc
 TSC_OPTS=--module commonjs --target ES5 --sourceMap --declaration
 
+TSLINT=./node_modules/.bin/tslint --config tslint.json --file
+
 compile: $(TS_OBJ)
 
 %.js: %.ts
+	$(TSLINT) $<
 	$(TSC) $(TSC_OPTS) $<
 	stat $@ > /dev/null
 
