@@ -13,8 +13,8 @@
   "keywords": [
     "typescript"
   ],
-  "author": "Matt Frantz <mfrantz@redsealnetworks.com>",
-  "license": "ISC",
+  "author": "Matt Frantz <matthew.h.frantz@gmail.com>",
+  "license": "MIT",
   "bin": {
     "ts-pkg-installer": "bin/ts-pkg-installer.sh",
     "ts-pkg-installer.js": "bin/ts-pkg-installer.js"
