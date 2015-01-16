@@ -1,2 +1,5 @@
 features/
 test/
+o/
+o.features/
+typings/
