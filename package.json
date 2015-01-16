@@ -15,6 +15,10 @@
   ],
   "author": "Matt Frantz <matthew.h.frantz@gmail.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mhfrantz/ts-pkg-installer.git"
+  },
   "bin": {
     "ts-pkg-installer": "bin/ts-pkg-installer.sh",
     "ts-pkg-installer.js": "bin/ts-pkg-installer.js"
