@@ -37,6 +37,18 @@ depending package can install a single copy of each TSD declaration file.
 You simply need to "npm install" this package, and then set "ts-pkg-installer" as your "postinstall" script.  When
 anyone installs your package, the script will do its thing.
 
+You must also use the TSD tool to install the typings that this tool decides are necessary.  Typically, you will have
+your own TSD config file (tsd.json); this tool will generate another one (node_modules/tsd.json).  To install both sets
+of typings, you need to run TSD twice:
+
+```
+TSD=./node_modules/.bin/tsd
+$TSD reinstall
+$TSD --config node_modules/tsd.json reinstall
+```
+
+There is a sample project under test/data/repo that shows how to use make with this tool.
+
 ## Isn't that too good to be true?
 
 Probably.  There may be scenarios that were not anticipated in the design and implementation of this tool.  Let me know
