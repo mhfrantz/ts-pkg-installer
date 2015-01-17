@@ -1,7 +1,10 @@
-.PHONY: install install-npm install-tsd lint test unittest cucumber compile
+.PHONY: all install install-npm install-tsd lint test unittest cucumber compile
 .PHONY: clean clean-doc clean-obj clean-tsd clean-npm clean-unittest clean-cucumber
 
-default: test
+default: all
+
+all: install-tsd
+	$(MAKE) test
 
 clean: clean-doc clean-obj clean-tsd clean-npm clean-unittest clean-cucumber
 
