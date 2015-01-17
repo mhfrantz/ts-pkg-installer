@@ -397,7 +397,7 @@ describe('ts-pkg-installer', () => {
       run(testData, ['-n'], function (error: Error, stdout: string, stderr: string): void {
         expect(error).to.not.equal(null);
         expect(stderr).to.contain('Main declaration file could not be wrapped');
-        expect(stderr).to.contain('OperationalError: ENOENT, open \'index.d.ts\'');
+        expect(stderr).to.contain('ENOENT, open \'index.d.ts\'');
         expect(stdout).to.equal('');
         done();
       });
