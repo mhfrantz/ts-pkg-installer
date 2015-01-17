@@ -8,6 +8,11 @@
 /// <reference path="../typings/node/node.d.ts"/>
 /// <reference path="../typings/rimraf/rimraf.d.ts"/>
 
+'use strict';
+
+declare function require(name: string);
+require('source-map-support').install();
+
 import chai = require('chai');
 import childProcess = require('child_process');
 import debug = require('debug');
