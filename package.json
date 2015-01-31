@@ -1,14 +1,10 @@
 {
   "name": "ts-pkg-installer",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "TypeScript package installer",
   "main": "bin/ts-pkg-installer.js",
   "scripts": {
     "test": "make"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git@github.lab.redseal.net:mfrantz/ts-pkg-installer.git"
   },
   "keywords": [
     "typescript"
