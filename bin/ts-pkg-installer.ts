@@ -10,7 +10,7 @@
 
 'use strict';
 
-declare function require(name: string);
+declare function require(name: string): any;
 require('source-map-support').install();
 
 import assert = require('assert');

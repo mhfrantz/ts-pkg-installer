@@ -48,8 +48,9 @@
     "no-unreachable": true,
     "no-use-before-declare": false,
     "no-var-requires": false,
-    "one-line": [true,
+    "one-line": [false,
         "check-open-brace",
+        true,
         "check-catch",
         "check-else",
         "check-whitespace"
