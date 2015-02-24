@@ -134,6 +134,21 @@ describe('ts-pkg-installer', () => {
     });
   }
 
+  // Create an alternate directory for testing a scoped package name.
+  function makeScopedDir(done: MochaDone): void {
+    var otherDir: string = path.join(testOutputDir, 'node_modules', '@scoped', 'test');
+
+    mkdirp(otherDir, (error: Error) => {
+
+      // Change into the package directory to catch any output.
+      if (!error) {
+        process.chdir(otherDir);
+      }
+
+      done(error);
+    });
+  }
+
   // ### Basic CLI Features
   describe('Basic CLI Features', () => {
 
@@ -256,46 +271,66 @@ describe('ts-pkg-installer', () => {
   // ### Should Run
   describe('Should Run', () => {
 
-    var otherDir: string;
+    describe('unscoped', () => {
 
-    // Create a parallel directory that is NOT under node_modules
-    beforeEach((done: MochaDone) => {
-      otherDir = path.join(testOutputDir, 'other', 'dir');
+      // Create a parallel directory that is NOT under node_modules
+      beforeEach((done: MochaDone) => {
+        var otherDir: string = path.join(testOutputDir, 'other', 'dir');
 
-      mkdirp(otherDir, (error: Error) => {
+        mkdirp(otherDir, (error: Error) => {
 
-        // Change into the package directory to catch any output.
-        if (!error) {
-          process.chdir(otherDir);
-        }
+          // Change into the package directory to catch any output.
+          if (!error) {
+            process.chdir(otherDir);
+          }
 
-        done(error);
+          done(error);
+        });
       });
+
+      it('does not run if we are not in a node_modules directory', (done: MochaDone) => {
+        run(nominalTestData, ['-v'], function (error: Error, stdout: string, stderr: string): void {
+          expect(error).to.equal(null);
+          expect(stderr).to.contain('ts-pkg-installer Should not run');
+          expect(stdout).to.equal('');
+
+          // Make sure we didn't really run.
+          expectNoOutput(done);
+        });
+      });
+
+      it('runs when force flag is configured', (done: MochaDone) => {
+        // Use test data that has the force flag set.
+        var testData = path.join(testDataRoot, 'force');
+        run(testData, ['-v', '-n'], function (error: Error, stdout: string, stderr: string): void {
+          expect(error).to.equal(null);
+          expect(stderr).to.contain('ts-pkg-installer Forced to run');
+          expect(stderr).to.contain('ts-pkg-installer Wrapped main declaration file');
+          expect(stdout).to.equal('');
+          done();
+        });
+      });
+
     });
 
-    it('does not run if we are not in a node_modules directory', (done: MochaDone) => {
-      run(nominalTestData, ['-v'], function (error: Error, stdout: string, stderr: string): void {
-        expect(error).to.equal(null);
-        expect(stderr).to.contain('ts-pkg-installer Should not run');
-        expect(stdout).to.equal('');
+    describe('scoped', () => {
 
-        // Make sure we didn't really run.
-        expectNoOutput(done);
+      // Create a parallel directory that is a scoped module directory under node_modules
+      beforeEach(makeScopedDir);
+
+      it('runs from a scoped module directory', (done: MochaDone) => {
+        // Use test data that has the force flag set.
+        var testData = path.join(testDataRoot, 'scoped');
+        run(testData, ['-v', '-n'], function (error: Error, stdout: string, stderr: string): void {
+          expect(error).to.equal(null);
+          expect(stderr).to.not.contain('ts-pkg-installer Forced to run');
+          expect(stderr).to.contain('ts-pkg-installer Wrapped main declaration file');
+          expect(stdout).to.equal('');
+          done();
+        });
       });
-    });
 
-    it('runs when force flag is configured', (done: MochaDone) => {
-      // Use test data that has the force flag set.
-      var testData = path.join(testDataRoot, 'force');
-      run(testData, ['-v', '-n'], function (error: Error, stdout: string, stderr: string): void {
-        expect(error).to.equal(null);
-        expect(stderr).to.contain('ts-pkg-installer Forced to run');
-        expect(stderr).to.contain('ts-pkg-installer Wrapped main declaration file');
-        expect(stdout).to.equal('');
-        done();
-      });
     });
-
   });
 
   // ### Package Config File
@@ -489,6 +524,34 @@ describe('ts-pkg-installer', () => {
       });
     });
 
+
+    describe('scoped', () => {
+
+      // Create a parallel directory that is a scoped module directory under node_modules
+      beforeEach(makeScopedDir);
+
+      it('supports scoped package names', (done: MochaDone) => {
+        var testData = path.join(testDataRoot, 'scoped');
+        run(testData, ['-v'], function (error: Error, stdout: string, stderr: string): void {
+          expect(error).to.equal(null);
+          expect(stdout).to.equal('');
+
+          var expectedPath: string = path.join(testOutputDir, 'typings', '@scoped', 'name', 'index.d.ts');
+          var expectedContents: string = (
+            '/// <reference path="../bar/bar.d.ts" />\n' +
+              '/// <reference path="../../foo/foo.d.ts" />\n' +
+              'declare module \'@scoped/name\' {\n' +
+              'export function main(): void;\n' +
+              '}\n');
+
+          var actualContents = fs.readFileSync(expectedPath, 'utf8');
+          expect(actualContents).to.be.ok;
+
+          done();
+        });
+      });
+    });
+
   });
 
   // ### Local TSD Config File
@@ -629,6 +692,27 @@ describe('ts-pkg-installer', () => {
       });
     });
 
+    describe('scoped', () => {
+
+      // Create a parallel directory that is a scoped module directory under node_modules
+      beforeEach(makeScopedDir);
+
+      it('supports scoped package names', (done: MochaDone) => {
+        var testData = path.join(testDataRoot, 'scoped');
+        run(testData, ['-v'], function (error: Error, stdout: string, stderr: string): void {
+          expect(error).to.equal(null);
+
+          // Expect the output file to exist
+          var actualPath: string = path.join(testOutputDir, 'node_modules', 'tsd.json');
+          var actualContents: string = fs.readFileSync(actualPath, 'utf8');
+
+          expect(actualContents).to.be.ok;
+
+          done();
+        });
+      });
+
+    });
   });
 
 });
