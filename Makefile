@@ -55,7 +55,7 @@ cucumber: lint compile
 TS_SRC=$(filter-out %.d.ts,$(wildcard bin/*.ts test/*.ts test/data/*/*.ts features/step_definitions/*.ts))
 TS_OBJ=$(patsubst %.ts,%.js,$(TS_SRC))
 TSC=./node_modules/.bin/tsc
-TSC_OPTS=--module commonjs --target ES5 --sourceMap --declaration
+TSC_OPTS=--module commonjs --target ES5 --sourceMap --declaration --noEmitOnError
 
 TSLINT=./node_modules/.bin/tslint --config tslint.json --file
 
