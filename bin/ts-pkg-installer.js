@@ -43,10 +43,10 @@ var Config = (function () {
         this.mainDeclaration = config.mainDeclaration;
         this.moduleName = config.moduleName;
         this.localTypingsDir = config.localTypingsDir || 'typings';
-        this.exportedTypingsDir = config.exportedTypingsDir || path.join('..', '..', 'typings');
+        this.exportedTypingsDir = config.exportedTypingsDir;
         this.typingsSubdir = config.typingsSubdir;
         this.localTsdConfig = config.localTsdConfig || 'tsd.json';
-        this.exportedTsdConfig = config.exportedTsdConfig || path.join('..', 'tsd.json');
+        this.exportedTsdConfig = config.exportedTsdConfig;
     }
     return Config;
 })();
@@ -165,8 +165,10 @@ var TypeScriptPackageInstaller = (function () {
     // - after our package is installed inside a depending package
     // - after our own dependencies are installed
     TypeScriptPackageInstaller.prototype.shouldRun = function () {
-        var parentDir = path.basename(path.dirname(process.cwd()));
-        var should = this.config.force || parentDir === 'node_modules';
+        var parentPath = path.dirname(process.cwd());
+        var parentDir = path.basename(parentPath);
+        var grandparentDir = path.basename(path.dirname(parentPath));
+        var should = this.config.force || parentDir === 'node_modules' || (parentDir.charAt(0) === '@' && grandparentDir === 'node_modules');
         if (this.config.force) {
             dlog('Forced to run');
         }
@@ -188,6 +190,18 @@ var TypeScriptPackageInstaller = (function () {
             throw new Error('Package config file could not be read: ' + packageConfigFile);
         });
     };
+    // Determine if the package name is scoped.
+    TypeScriptPackageInstaller.prototype.isPackageScoped = function () {
+        return this.packageConfig.name.charAt(0) === '@';
+    };
+    // Determine the appropriate directory in which to export module declaration (*.d.ts) files.
+    TypeScriptPackageInstaller.prototype.exportedTypingsDir = function () {
+        return this.config.exportedTypingsDir || (this.isPackageScoped() ? path.join('..', '..', '..', 'typings') : path.join('..', '..', 'typings'));
+    };
+    // Determine the appropriate directory in which to export the TSD config (tsd.json) file.
+    TypeScriptPackageInstaller.prototype.exportedTsdConfigPath = function () {
+        return this.config.exportedTsdConfig || (this.isPackageScoped() ? path.join('..', '..', 'tsd.json') : path.join('..', 'tsd.json'));
+    };
     // Determine where we will write our main declaration file.
     // - Side effect: Sets `this.config.typingsSubdir`, if not specified in config file
     // - Side effect: Sets `this.exportedTypingsSubdir`.
@@ -196,7 +210,7 @@ var TypeScriptPackageInstaller = (function () {
         if (!this.config.typingsSubdir) {
             this.config.typingsSubdir = this.packageConfig.name;
         }
-        this.exportedTypingsSubdir = path.join(this.config.exportedTypingsDir, this.config.typingsSubdir);
+        this.exportedTypingsSubdir = path.join(this.exportedTypingsDir(), this.config.typingsSubdir);
     };
     // Wrap the main declaration file, by default based on the "main" JS file from package.json.
     TypeScriptPackageInstaller.prototype.wrapMainDeclaration = function () {
@@ -347,8 +361,8 @@ var TypeScriptPackageInstaller = (function () {
     // Read the exported TSD configuration (if any).
     TypeScriptPackageInstaller.prototype.readExportedTsdConfigFile = function () {
         var _this = this;
-        assert(this.config && this.config.exportedTsdConfig);
-        return this.readTsdConfigFile(this.config.exportedTsdConfig).then(function (config) {
+        assert(this.config && this.exportedTsdConfigPath());
+        return this.readTsdConfigFile(this.exportedTsdConfigPath()).then(function (config) {
             _this.exportedTsdConfig = config;
         });
     };
@@ -387,8 +401,8 @@ var TypeScriptPackageInstaller = (function () {
             dlog('No existing exported TSD typings');
             this.exportedTsdConfig = this.localTsdConfig;
             // We do have to change the path to point to the place where we are exporting the typings.
-            var tsdConfigDir = path.dirname(this.config.exportedTsdConfig);
-            var typingsPath = path.relative(tsdConfigDir, this.config.exportedTypingsDir);
+            var tsdConfigDir = path.dirname(this.exportedTsdConfigPath());
+            var typingsPath = path.relative(tsdConfigDir, this.exportedTypingsDir());
             dlog('Configured TSD typings path: ' + typingsPath);
             this.exportedTsdConfig.path = typingsPath;
         }
@@ -400,7 +414,7 @@ var TypeScriptPackageInstaller = (function () {
         var contents = JSON.stringify(this.exportedTsdConfig, null, 2) + '\n';
         dlog('Combined TSD typings:\n' + contents);
         return this.maybeDo(function () {
-            return fsWriteFileAsync(_this.config.exportedTsdConfig, contents);
+            return fsWriteFileAsync(_this.exportedTsdConfigPath(), contents);
         });
     };
     // Allow conditional execution based on dry run mode.
